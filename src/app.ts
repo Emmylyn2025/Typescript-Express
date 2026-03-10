@@ -6,7 +6,7 @@ import { globalError, appError } from "./utils/appError";
 const app = express();
 app.use(express.json());
 app.use(cookieParser());
-
+app.set('query parser', 'extended');
 app.use('/typescript', router);
 
 //Not found error handler

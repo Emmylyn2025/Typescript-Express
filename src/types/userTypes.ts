@@ -24,3 +24,11 @@ export interface tokenReturn {
   accessToken: string,
   refreshToken: string
 }
+
+export type userQuery = {
+  sort?: string,
+  page?: number,
+  limit?: number,
+  fields?: string,
+  [key: string]: any;
+}
