@@ -25,6 +25,24 @@ export interface tokenReturn {
   refreshToken: string
 }
 
+export interface params {
+  id: string
+}
+
+export interface reset {
+  token: string,
+}
+
+export interface update {
+  username?: string,
+  age?: number,
+  role?: 'USER' | 'ADMIN'
+}
+
+export interface pass {
+  newPassword: string
+}
+
 export type userQuery = {
   sort?: string,
   page?: number,

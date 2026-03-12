@@ -10,6 +10,7 @@ const appError_1 = require("./utils/appError");
 const app = (0, express_1.default)();
 app.use(express_1.default.json());
 app.use((0, cookie_parser_1.default)());
+app.set('query parser', 'extended');
 app.use('/typescript', router_1.default);
 //Not found error handler
 app.use((req, res, next) => {

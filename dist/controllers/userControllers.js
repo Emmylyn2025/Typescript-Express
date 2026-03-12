@@ -3,12 +3,17 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.logout = exports.refresh = exports.LoginUsers = exports.RegisterUsers = void 0;
+exports.updateUser = exports.deleteUser = exports.resetPassword = exports.forgotpassword = exports.allUsers = exports.logout = exports.refresh = exports.LoginUsers = exports.RegisterUsers = void 0;
+//import { Prisma } from "@prisma/client";
+const handleErrorPrisma_1 = require("../utils/handleErrorPrisma");
 const prismaClient_1 = __importDefault(require("../prisma/prismaClient"));
 const hashPassword_1 = require("../utils/hashPassword");
 const redis_1 = __importDefault(require("../redis/redis"));
 const token_1 = require("../utils/token");
 const appError_1 = require("../utils/appError");
+const queryBuilder_1 = __importDefault(require("../utils/queryBuilder"));
+const uuid_1 = require("uuid");
+const crypto_1 = __importDefault(require("crypto"));
 exports.RegisterUsers = (0, appError_1.asyncHandler)(async (req, res, next) => {
     const { username, email, password, age } = req.body;
     //Check if user exists before
@@ -55,7 +60,7 @@ exports.LoginUsers = (0, appError_1.asyncHandler)(async (req, res, next) => {
     //If password is valid
     const { accessToken, refreshToken } = (0, token_1.generateTokens)(user);
     //Save refresh token in redis
-    await redis_1.default.set(`user:${user.id}`, refreshToken);
+    await redis_1.default.set(`user:${user.id}`, refreshToken, { EX: 2592000 });
     //Save refresh token in httpOnly cookie
     (0, token_1.saveRefreshToken)(res, refreshToken);
     res.status(200).json({
@@ -78,7 +83,7 @@ exports.refresh = (0, appError_1.asyncHandler)(async (req, res, next) => {
     //Assign new tokens
     const { accessToken, refreshToken } = (0, token_1.generateTokens)(user);
     //Save refresh token in redis
-    await redis_1.default.set(`user:${user.id}`, refreshToken);
+    await redis_1.default.set(`user:${user.id}`, refreshToken, { EX: 2592000 });
     //Save refresh token inside cookie
     (0, token_1.saveRefreshToken)(res, refreshToken);
     res.status(200).json({
@@ -102,4 +107,99 @@ exports.logout = (0, appError_1.asyncHandler)(async (req, res, next) => {
         status: "Successful",
         message: "Logout successfully"
     });
+});
+exports.allUsers = (0, appError_1.asyncHandler)(async (req, res, next) => {
+    const allowedFields = ['username', 'email', 'createdAt', 'age', 'role', 'id'];
+    const builder = new queryBuilder_1.default(req.query).filter(allowedFields).limitFields(allowedFields).sort(allowedFields).paginate();
+    try {
+        const users = await prismaClient_1.default.user.findMany(builder.query);
+        res.status(200).json({
+            status: 'success',
+            data: users,
+            length: users.length
+        });
+    }
+    catch (error) {
+        const { status, message } = (0, handleErrorPrisma_1.handlePrismaError)(error);
+        res.status(status).json({ message });
+    }
+});
+exports.forgotpassword = (0, appError_1.asyncHandler)(async (req, res, next) => {
+    const { email } = req.body;
+    //Check if user exists
+    try {
+        await prismaClient_1.default.user.findUnique({
+            where: {
+                email
+            }
+        });
+        //Generate random token
+        const randomToken = await crypto_1.default.randomBytes(32).toString('base64');
+        const hashedBytes = await crypto_1.default.createHash('sha256').update(randomToken).digest('hex');
+        const url = `http://localhost:3000/typescript/reset-password/${randomToken}`;
+        //Save hased bytes in redis
+        //await redisClient.set(`userReset:${email}`, hashedBytes, { EX: 600 });
+        console.log(url);
+        res.status(200).json({
+            message: "Sent to your gmail successfully"
+        });
+    }
+    catch (error) {
+        const { status, message } = (0, handleErrorPrisma_1.handlePrismaError)(error);
+        res.status(status).json({ message });
+    }
+});
+exports.resetPassword = (0, appError_1.asyncHandler)(async (req, res, next) => {
+});
+exports.deleteUser = (0, appError_1.asyncHandler)(async (req, res, next) => {
+    const { id } = req.params;
+    if (!(0, uuid_1.validate)(id))
+        return next(new appError_1.appError("Invalid id format", 400));
+    try {
+        const user = await prismaClient_1.default.user.delete({
+            where: { id },
+            select: {
+                id: true,
+                username: true,
+                email: true,
+                createdAt: true,
+                role: true
+            }
+        });
+        res.status(200).json({
+            message: "User deleted successfully",
+            user
+        });
+    }
+    catch (error) {
+        const { status, message } = (0, handleErrorPrisma_1.handlePrismaError)(error);
+        res.status(status).json({ message });
+    }
+});
+exports.updateUser = (0, appError_1.asyncHandler)(async (req, res, next) => {
+    const { id } = req.params;
+    if (!(0, uuid_1.validate)(id))
+        return next(new appError_1.appError("Invalid id format", 400));
+    let { username, age } = req.body;
+    try {
+        const user = await prismaClient_1.default.user.update({
+            where: { id },
+            data: {
+                username,
+                age
+            },
+            select: {
+                username: true,
+                age: true
+            }
+        });
+        res.status(200).json({
+            user,
+            message: 'User updated successfully'
+        });
+    }
+    catch (error) {
+        const { status, message } = (0, handleErrorPrisma_1.handlePrismaError)(error);
+        res.status(status).json({ message });
+    }
 });
