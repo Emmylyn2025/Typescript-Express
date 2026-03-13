@@ -15,13 +15,15 @@ export function generateTokens(user: payLoadToken): tokenReturn {
   const accessToken = jwt.sign({
     id: user.id,
     username: user.username,
-    age: user.age
+    age: user.age,
+    role: user.role
   }, accessSecret, { expiresIn: "30m" });
 
   const refreshToken = jwt.sign({
     id: user.id,
     username: user.username,
-    age: user.age
+    age: user.age,
+    role: user.role
   }, refreshSecret, { expiresIn: "30d" });
 
   return { accessToken, refreshToken };

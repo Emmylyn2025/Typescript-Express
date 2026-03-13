@@ -17,7 +17,17 @@ export type forget = {
 export interface payLoadToken {
   id: string,
   username: string,
-  age: number
+  age: number,
+  role: 'USER' | 'ADMIN'
+}
+
+//For req.user
+declare global {
+  namespace Express {
+    interface Request {
+      user?: payLoadToken;
+    }
+  }
 }
 
 export interface tokenReturn {

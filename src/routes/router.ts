@@ -1,12 +1,13 @@
 import { Router } from "express";
 import { RegisterUsers, LoginUsers, refresh, logout, allUsers, deleteUser, updateUser, forgotpassword, resetPassword } from "../controllers/userControllers";
+import { auth, adminAuth } from "../middleware/authMiddleware";
 
 const router = Router();
 
 router.post('/users', RegisterUsers);
-router.get('/users', allUsers);
-router.delete('/users/:id', deleteUser);
-router.patch('/users/:id', updateUser)
+router.get('/users', auth, adminAuth, allUsers);
+router.delete('/users/:id', auth, adminAuth, deleteUser);
+router.patch('/users/:id', auth, adminAuth, updateUser);
 router.post('/login', LoginUsers);
 router.get('/refresh', refresh);
 router.get('/logout', logout);

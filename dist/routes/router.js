@@ -11,4 +11,5 @@ router.post('/login', userControllers_1.LoginUsers);
 router.get('/refresh', userControllers_1.refresh);
 router.get('/logout', userControllers_1.logout);
 router.post('/forgot-password', userControllers_1.forgotpassword);
+router.patch('/reset-password/:token', userControllers_1.resetPassword);
 exports.default = router;

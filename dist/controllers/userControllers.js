@@ -126,30 +126,48 @@ exports.allUsers = (0, appError_1.asyncHandler)(async (req, res, next) => {
 });
 exports.forgotpassword = (0, appError_1.asyncHandler)(async (req, res, next) => {
     const { email } = req.body;
-    //Check if user exists
+    const user = await prismaClient_1.default.user.findUnique({
+        where: {
+            email
+        }
+    });
+    if (!user)
+        return next(new appError_1.appError("User not found", 404));
+    //Generate random token
+    const randomToken = await crypto_1.default.randomBytes(32).toString('base64');
+    const url = `http://localhost:3000/typescript/reset-password/${randomToken}`;
+    console.log(url);
+    //Save hased bytes in redis
+    await redis_1.default.set(`userReset:${randomToken}`, user.id, { EX: 600 });
+    res.status(200).json({
+        message: "Sent to your gmail successfully"
+    });
+});
+exports.resetPassword = (0, appError_1.asyncHandler)(async (req, res, next) => {
+    const { token } = req.params;
+    const { newPassword } = req.body;
+    //Get user from redis
+    const userId = await redis_1.default.get(`userReset:${token}`);
+    if (!userId)
+        return next(new appError_1.appError("Invalid or expired token", 401));
+    const hashedPassword = await (0, hashPassword_1.hashPassword)(newPassword);
     try {
-        await prismaClient_1.default.user.findUnique({
+        await prismaClient_1.default.user.update({
             where: {
-                email
+                id: userId
+            },
+            data: {
+                password: hashedPassword
             }
         });
-        //Generate random token
-        const randomToken = await crypto_1.default.randomBytes(32).toString('base64');
-        const hashedBytes = await crypto_1.default.createHash('sha256').update(randomToken).digest('hex');
-        const url = `http://localhost:3000/typescript/reset-password/${randomToken}`;
-        //Save hased bytes in redis
-        //await redisClient.set(`userReset:${email}`, hashedBytes, { EX: 600 });
-        console.log(url);
         res.status(200).json({
-            message: "Sent to your gmail successfully"
+            message: "Password reset successfully"
         });
     }
     catch (error) {
         const { status, message } = (0, handleErrorPrisma_1.handlePrismaError)(error);
         res.status(status).json({ message });
     }
-});
-exports.resetPassword = (0, appError_1.asyncHandler)(async (req, res, next) => {
 });
 exports.deleteUser = (0, appError_1.asyncHandler)(async (req, res, next) => {
     const { id } = req.params;
@@ -180,17 +198,19 @@ exports.updateUser = (0, appError_1.asyncHandler)(async (req, res, next) => {
     const { id } = req.params;
     if (!(0, uuid_1.validate)(id))
         return next(new appError_1.appError("Invalid id format", 400));
-    let { username, age } = req.body;
+    let { username, age, role } = req.body;
     try {
         const user = await prismaClient_1.default.user.update({
             where: { id },
             data: {
                 username,
-                age
+                age,
+                role
             },
             select: {
                 username: true,
-                age: true
+                age: true,
+                role: true
             }
         });
         res.status(200).json({
