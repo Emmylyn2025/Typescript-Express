@@ -2,7 +2,7 @@ import dotenv from "dotenv";
 import { Response } from "express";
 dotenv.config();
 import jwt from "jsonwebtoken";
-import { payLoadToken, tokenReturn } from "../types/userTypes";
+import { payLoadToken, tokenReturn, payLoadVerify } from "../types/userTypes";
 
 
 export function generateTokens(user: payLoadToken): tokenReturn {
@@ -27,6 +27,32 @@ export function generateTokens(user: payLoadToken): tokenReturn {
   }, refreshSecret, { expiresIn: "30d" });
 
   return { accessToken, refreshToken };
+}
+
+export function verifyToken(user: payLoadVerify): string {
+  const emailSecret = process.env.emailtoken;
+
+  if (!emailSecret) {
+    throw new Error("JWT are not defined in environmental variables");
+  }
+
+  const token = jwt.sign({
+    id: user.id,
+    username: user.username
+  }, emailSecret, { expiresIn: "1d" });
+
+  return token;
+}
+
+export function decodedEmailToken(token: string): payLoadVerify {
+
+  const emailSecret = process.env.emailtoken;
+
+  if (!emailSecret) {
+    throw new Error("JWT are not defined in environmental variables");
+  }
+
+  return jwt.verify(token, emailSecret) as payLoadVerify;
 }
 
 //Verify accesstoken

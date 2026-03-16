@@ -1,13 +1,20 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const userControllers_1 = require("../controllers/userControllers");
+const authMiddleware_1 = require("../middleware/authMiddleware");
+const zodValidationMiddleware_1 = __importDefault(require("../middleware/zodValidationMiddleware"));
+const schema_1 = require("../zod/schema");
 const router = (0, express_1.Router)();
-router.post('/users', userControllers_1.RegisterUsers);
-router.get('/users', userControllers_1.allUsers);
-router.delete('/users/:id', userControllers_1.deleteUser);
-router.patch('/users/:id', userControllers_1.updateUser);
-router.post('/login', userControllers_1.LoginUsers);
+router.post('/users', (0, zodValidationMiddleware_1.default)(schema_1.registerSchema), userControllers_1.RegisterUsers);
+router.get('/verify-email', userControllers_1.verifyEmail);
+router.get('/users', /*auth, adminAuth,*/ userControllers_1.allUsers);
+router.delete('/users/:id', /*auth, adminAuth,*/ userControllers_1.deleteUser);
+router.patch('/users/:id', authMiddleware_1.auth, authMiddleware_1.adminAuth, userControllers_1.updateUser);
+router.post('/login', (0, zodValidationMiddleware_1.default)(schema_1.loginSchema), userControllers_1.LoginUsers);
 router.get('/refresh', userControllers_1.refresh);
 router.get('/logout', userControllers_1.logout);
 router.post('/forgot-password', userControllers_1.forgotpassword);

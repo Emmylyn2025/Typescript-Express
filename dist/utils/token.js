@@ -4,6 +4,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.generateTokens = generateTokens;
+exports.verifyToken = verifyToken;
+exports.decodedEmailToken = decodedEmailToken;
 exports.verifyAccessToken = verifyAccessToken;
 exports.verifyRefreshToken = verifyRefreshToken;
 exports.saveRefreshToken = saveRefreshToken;
@@ -19,14 +21,34 @@ function generateTokens(user) {
     const accessToken = jsonwebtoken_1.default.sign({
         id: user.id,
         username: user.username,
-        age: user.age
+        age: user.age,
+        role: user.role
     }, accessSecret, { expiresIn: "30m" });
     const refreshToken = jsonwebtoken_1.default.sign({
         id: user.id,
         username: user.username,
-        age: user.age
+        age: user.age,
+        role: user.role
     }, refreshSecret, { expiresIn: "30d" });
     return { accessToken, refreshToken };
+}
+function verifyToken(user) {
+    const emailSecret = process.env.emailtoken;
+    if (!emailSecret) {
+        throw new Error("JWT are not defined in environmental variables");
+    }
+    const token = jsonwebtoken_1.default.sign({
+        id: user.id,
+        username: user.username
+    }, emailSecret, { expiresIn: "1d" });
+    return token;
+}
+function decodedEmailToken(token) {
+    const emailSecret = process.env.emailtoken;
+    if (!emailSecret) {
+        throw new Error("JWT are not defined in environmental variables");
+    }
+    return jsonwebtoken_1.default.verify(token, emailSecret);
 }
 //Verify accesstoken
 function verifyAccessToken(token) {

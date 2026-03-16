@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.updateUser = exports.deleteUser = exports.resetPassword = exports.forgotpassword = exports.allUsers = exports.logout = exports.refresh = exports.LoginUsers = exports.RegisterUsers = void 0;
+exports.updateUser = exports.deleteUser = exports.resetPassword = exports.forgotpassword = exports.allUsers = exports.logout = exports.refresh = exports.LoginUsers = exports.verifyEmail = exports.RegisterUsers = void 0;
 //import { Prisma } from "@prisma/client";
 const handleErrorPrisma_1 = require("../utils/handleErrorPrisma");
 const prismaClient_1 = __importDefault(require("../prisma/prismaClient"));
@@ -14,6 +14,7 @@ const appError_1 = require("../utils/appError");
 const queryBuilder_1 = __importDefault(require("../utils/queryBuilder"));
 const uuid_1 = require("uuid");
 const crypto_1 = __importDefault(require("crypto"));
+const email_1 = require("../utils/email");
 exports.RegisterUsers = (0, appError_1.asyncHandler)(async (req, res, next) => {
     const { username, email, password, age } = req.body;
     //Check if user exists before
@@ -23,12 +24,12 @@ exports.RegisterUsers = (0, appError_1.asyncHandler)(async (req, res, next) => {
         }
     });
     if (user) {
-        return next(new appError_1.appError("This is a registered user", 400));
+        return next(new appError_1.appError("This is a registered user", 409));
     }
     //Hash the user password
     const hash = await (0, hashPassword_1.hashPassword)(password);
     //create user
-    await prismaClient_1.default.user.create({
+    const newUser = await prismaClient_1.default.user.create({
         data: {
             username,
             email,
@@ -36,9 +37,49 @@ exports.RegisterUsers = (0, appError_1.asyncHandler)(async (req, res, next) => {
             password: hash
         }
     });
-    res.status(200).json({
+    //generate email verification token
+    const token = (0, token_1.verifyToken)(newUser);
+    const verifyUrl = `http://localhost:${process.env.PORT}/typescript/verify-email?token=${token}`;
+    await (0, email_1.sendEmail)(newUser.email, "Email verification after registration", `
+    <p>
+      Click the link below to verify you email <br>
+      <a href=${verifyUrl}>This link</a><br>
+      <p>Hence this link is only valid for 24 hours</p>
+    </p>
+    `);
+    res.status(201).json({
         status: 'success',
-        message: "USer registered successfully"
+        message: "USer registered successfully",
+        member: {
+            id: newUser.id,
+            email: newUser.email,
+            emailVerified: newUser.isEmailVer
+        }
+    });
+});
+exports.verifyEmail = (0, appError_1.asyncHandler)(async (req, res, next) => {
+    const token = req.query.token;
+    if (!token)
+        return next(new appError_1.appError("Verification token is missing", 400));
+    const verify = (0, token_1.decodedEmailToken)(token);
+    const user = await prismaClient_1.default.user.findUnique({
+        where: {
+            id: verify.id
+        }
+    });
+    if (!user)
+        return next(new appError_1.appError("User not found", 404));
+    //Update user email verification
+    await prismaClient_1.default.user.update({
+        where: {
+            id: user.id
+        },
+        data: {
+            isEmailVer: true
+        }
+    });
+    res.json({
+        message: "Email verified successfully"
     });
 });
 exports.LoginUsers = (0, appError_1.asyncHandler)(async (req, res, next) => {
@@ -57,6 +98,8 @@ exports.LoginUsers = (0, appError_1.asyncHandler)(async (req, res, next) => {
     if (!confirm) {
         return next(new appError_1.appError("Invalid password", 401));
     }
+    if (user.isEmailVer === false)
+        return next(new appError_1.appError("You haven't verified your email", 400));
     //If password is valid
     const { accessToken, refreshToken } = (0, token_1.generateTokens)(user);
     //Save refresh token in redis
@@ -109,7 +152,7 @@ exports.logout = (0, appError_1.asyncHandler)(async (req, res, next) => {
     });
 });
 exports.allUsers = (0, appError_1.asyncHandler)(async (req, res, next) => {
-    const allowedFields = ['username', 'email', 'createdAt', 'age', 'role', 'id'];
+    const allowedFields = ['username', 'email', 'createdAt', 'age', 'role', 'id', "isEmailVer"];
     const builder = new queryBuilder_1.default(req.query).filter(allowedFields).limitFields(allowedFields).sort(allowedFields).paginate();
     try {
         const users = await prismaClient_1.default.user.findMany(builder.query);

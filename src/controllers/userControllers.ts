@@ -5,11 +5,12 @@ import prisma from "../prisma/prismaClient";
 import { hashPassword, confirmPassword } from "../utils/hashPassword";
 import { User, Login, forget, userQuery, params, update, reset, pass } from "../types/userTypes";
 import redisClient from "../redis/redis";
-import { generateTokens, saveRefreshToken, verifyRefreshToken } from "../utils/token";
+import { generateTokens, saveRefreshToken, verifyRefreshToken, verifyToken, decodedEmailToken } from "../utils/token";
 import { asyncHandler, appError } from "../utils/appError";
 import QueryBuilder from "../utils/queryBuilder";
 import { validate as isUUID } from "uuid";
-import crypto from "crypto"
+import crypto from "crypto";
+import { sendEmail } from "../utils/email";
 
 export const RegisterUsers = asyncHandler(async (req: Request<{}, {}, User>, res: Response, next: NextFunction) => {
   const { username, email, password, age } = req.body;
@@ -22,14 +23,14 @@ export const RegisterUsers = asyncHandler(async (req: Request<{}, {}, User>, res
   });
 
   if (user) {
-    return next(new appError("This is a registered user", 400));
+    return next(new appError("This is a registered user", 409));
   }
 
   //Hash the user password
   const hash = await hashPassword(password);
 
   //create user
-  await prisma.user.create({
+  const newUser = await prisma.user.create({
     data: {
       username,
       email,
@@ -38,11 +39,63 @@ export const RegisterUsers = asyncHandler(async (req: Request<{}, {}, User>, res
     }
   });
 
-  res.status(200).json({
+  //generate email verification token
+  const token = verifyToken(newUser);
+
+  const verifyUrl = `http://localhost:${process.env.PORT}/typescript/verify-email?token=${token}`;
+
+  await sendEmail(
+    newUser.email,
+    "Email verification after registration",
+    `
+    <p>
+      Click the link below to verify you email <br>
+      <a href=${verifyUrl}>This link</a><br>
+      <p>Hence this link is only valid for 24 hours</p>
+    </p>
+    `,
+  )
+
+  res.status(201).json({
     status: 'success',
-    message: "USer registered successfully"
+    message: "USer registered successfully",
+    member: {
+      id: newUser.id,
+      email: newUser.email,
+      emailVerified: newUser.isEmailVer
+    }
   });
 
+});
+
+export const verifyEmail = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+  const token = req.query.token as string | undefined;
+
+  if (!token) return next(new appError("Verification token is missing", 400));
+
+  const verify = decodedEmailToken(token);
+
+  const user = await prisma.user.findUnique({
+    where: {
+      id: verify.id
+    }
+  });
+
+  if (!user) return next(new appError("User not found", 404));
+
+  //Update user email verification
+  await prisma.user.update({
+    where: {
+      id: user.id
+    },
+    data: {
+      isEmailVer: true
+    }
+  });
+
+  res.json({
+    message: "Email verified successfully"
+  })
 })
 
 export const LoginUsers = asyncHandler(async (req: Request<{}, {}, Login>, res: Response, next: NextFunction) => {
@@ -65,6 +118,8 @@ export const LoginUsers = asyncHandler(async (req: Request<{}, {}, Login>, res: 
     return next(new appError("Invalid password", 401));
   }
 
+  if (user.isEmailVer === false) return next(new appError("You haven't verified your email", 400));
+
   //If password is valid
   const { accessToken, refreshToken } = generateTokens(user);
 
@@ -81,7 +136,7 @@ export const LoginUsers = asyncHandler(async (req: Request<{}, {}, Login>, res: 
 });
 
 export const refresh = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
-  const refreshCookie = req.cookies.refreshtoken;
+  const refreshCookie = req.cookies?.refreshtoken as string | undefined;
   if (!refreshCookie) return next(new appError("No refresh token available in cookie", 401));
   const user = verifyRefreshToken(refreshCookie);
 
@@ -130,7 +185,7 @@ export const logout = asyncHandler(async (req: Request, res: Response, next: Nex
 });
 
 export const allUsers = asyncHandler(async (req: Request<{}, {}, {}, userQuery>, res: Response, next: NextFunction) => {
-  const allowedFields = ['username', 'email', 'createdAt', 'age', 'role', 'id'];
+  const allowedFields = ['username', 'email', 'createdAt', 'age', 'role', 'id', "isEmailVer"];
 
   const builder = new QueryBuilder(req.query).filter(allowedFields).limitFields(allowedFields).sort(allowedFields).paginate();
 

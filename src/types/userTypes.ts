@@ -2,7 +2,7 @@ export type User = {
   username: string,
   email: string,
   password: string,
-  age: number
+  age: number,
 }
 
 export type Login = {
@@ -33,6 +33,11 @@ declare global {
 export interface tokenReturn {
   accessToken: string,
   refreshToken: string
+}
+
+export interface payLoadVerify {
+  id: string,
+  username: string,
 }
 
 export interface params {
