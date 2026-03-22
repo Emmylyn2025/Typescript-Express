@@ -3,7 +3,7 @@ import { Request, Response, NextFunction } from "express";
 import { handlePrismaError } from "../utils/handleErrorPrisma";
 import prisma from "../prisma/prismaClient";
 import { hashPassword, confirmPassword } from "../utils/hashPassword";
-import { User, Login, forget, userQuery, params, update, reset, pass } from "../types/userTypes";
+import { User, Login, forget, userQuery, params, update, reset, pass, payLoadToken } from "../types/userTypes";
 import redisClient from "../redis/redis";
 import { generateTokens, saveRefreshToken, verifyRefreshToken, verifyToken, decodedEmailToken } from "../utils/token";
 import { asyncHandler, appError } from "../utils/appError";
@@ -11,6 +11,8 @@ import QueryBuilder from "../utils/queryBuilder";
 import { validate as isUUID } from "uuid";
 import crypto from "crypto";
 import { sendEmail } from "../utils/email";
+import { googleClient } from "../utils/google";
+import jwt from "jsonwebtoken"
 
 export const RegisterUsers = asyncHandler(async (req: Request<{}, {}, User>, res: Response, next: NextFunction) => {
   const { username, email, password, age } = req.body;
@@ -58,7 +60,7 @@ export const RegisterUsers = asyncHandler(async (req: Request<{}, {}, User>, res
 
   res.status(201).json({
     status: 'success',
-    message: "USer registered successfully",
+    message: "USer registered successfully, Make sure you verify your email",
     member: {
       id: newUser.id,
       email: newUser.email,
@@ -94,9 +96,9 @@ export const verifyEmail = asyncHandler(async (req: Request, res: Response, next
   });
 
   res.json({
-    message: "Email verified successfully"
+    message: "Email verification complete, You can now login"
   })
-})
+});
 
 export const LoginUsers = asyncHandler(async (req: Request<{}, {}, Login>, res: Response, next: NextFunction) => {
   const { email, password } = req.body;
@@ -218,11 +220,20 @@ export const forgotpassword = asyncHandler(async (req: Request<{}, {}, forget>, 
   //Generate random token
   const randomToken = await crypto.randomBytes(32).toString('base64');
 
-  const url = `http://localhost:3000/typescript/reset-password/${randomToken}`;
-  console.log(url);
-
   //Save hased bytes in redis
-  await redisClient.set(`userReset:${randomToken}`, user.id, { EX: 600 });
+  await redisClient.set(`userReset:${randomToken}`, user.id, { EX: 10 });
+
+  const url = `http://localhost:3000/typescript/reset-password?token=${randomToken}`;
+
+  //Send the url link to the user email
+  await sendEmail(
+    user.email,
+    "Reset password link",
+    `<p>Click the link below to reset your password</p>
+     <p>Note: It is only valid for 10 minutes</p>
+     <a href=${url}>This link</a>
+    `
+  )
 
   res.status(200).json({
     message: "Sent to your gmail successfully"
@@ -230,12 +241,13 @@ export const forgotpassword = asyncHandler(async (req: Request<{}, {}, forget>, 
 
 });
 
-export const resetPassword = asyncHandler(async (req: Request<reset, {}, pass>, res: Response, next: NextFunction) => {
-  const { token } = req.params;
+export const resetPassword = asyncHandler(async (req: Request<{}, {}, pass, reset>, res: Response, next: NextFunction) => {
+  const { token } = req.query;
   const { newPassword } = req.body;
 
   //Get user from redis
   const userId = await redisClient.get(`userReset:${token}`);
+  //console.log(userId);
   if (!userId) return next(new appError("Invalid or expired token", 401));
 
   const hashedPassword = await hashPassword(newPassword);
@@ -321,3 +333,92 @@ export const updateUser = asyncHandler(async (req: Request<params, {}, update>, 
     res.status(status).json({ message });
   }
 });
+
+export const googleAuthStart = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+  const client = googleClient();
+  const url = client.generateAuthUrl({
+    access_type: "offline",
+    prompt: "consent",
+    scope: ["openid", "email", "profile"]
+  });
+
+  console.log(url);
+
+  return res.redirect(url);
+});
+
+export const getAuthCallBackHandler = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+  const code = req.query.code as string | undefined;
+
+  if (!code) {
+    return next(new appError("Missing code in callback", 400));
+  }
+
+  const client = googleClient();
+
+  const { tokens } = await client.getToken(code)
+
+  if (!tokens.id_token) return next(new appError("Google id token is not present", 400));
+
+  const ticket = await client.verifyIdToken({
+    idToken: tokens.id_token,
+    audience: process.env.GOOGLE_CLIENT_ID as string
+  });
+
+  const payload = ticket.payload;
+  const email = payload?.email;
+  const emailVerified = payload?.email_verified
+
+  if (!email || !emailVerified) return next(new appError("This email is not verified by google", 400));
+
+  const normalizedEmail = email.toLowerCase().trim();
+
+  let user = await prisma.user.findUnique({
+    where: {
+      email: normalizedEmail
+    }
+  });
+
+  if (!user) {
+    //Create a new user if the user does not exists
+    const randomPassword = await crypto.randomBytes(16).toString('hex');
+    const hashedPassword = await hashPassword(randomPassword);
+
+    //Make google create a new user
+    await prisma.user.create({
+      data: {
+        email: normalizedEmail,
+        password: hashedPassword,
+        role: 'USER',
+        username: payload?.given_name,
+        isEmailVer: true,
+        age: 20
+      }
+    })
+
+  } else {
+    if (user.isEmailVer === false) {
+      await prisma.user.update({
+        where: {
+          id: user.id
+        },
+        data: {
+          isEmailVer: true
+        }
+      })
+    }
+  }
+
+  const { accessToken, refreshToken } = generateTokens(user as payLoadToken);
+
+  //save refresh token in redis
+  await redisClient.set(`user:${user?.id}`, refreshToken, { EX: 2592000 });
+
+  //Save refresh token in httpOnly cookie
+  saveRefreshToken(res, refreshToken);
+
+  res.status(200).json({
+    message: "Google Login Successful",
+    token: accessToken
+  });
+})

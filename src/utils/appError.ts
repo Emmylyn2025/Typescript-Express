@@ -26,6 +26,7 @@ export const asyncHandler = (fn: Function) => {
 
 //Global Error handler
 export const globalError = (err: appError, req: Request, res: Response, next: NextFunction) => {
+  console.log(err.message);
   const statusCode = err.statusCode || 500;
 
   res.status(statusCode).json({

@@ -1,0 +1,73 @@
+## Table of Contents
+- [Installation](#installation)
+- [Usage](#usage)
+- [API Endpoints](#api-endpoints)
+- [Technologies](#technologies)
+- [Contributing](#contributing)
+- [License](#license)
+
+
+## Installation
+1. Clone the repository:
+```bash
+git clone https://github.com/Emmylyn2025/Typescript-Express
+
+
+Navigate into the project folder:
+cd my-express-project
+
+Install dependencies:
+npm install
+
+
+Create a .env file based on .env.example and add your environment variables.
+Start the development server with:
+npm run dev
+
+
+---
+
+## Usage
+2. How to use the api
+how to run or interact with your project.
+
+```markdown
+
+- Start server:
+```bash
+npm run dev
+Open http://localhost:3000 (or your port) to access API endpoints.
+
+
+
+
+---
+
+## **6. API Endpoints (Optional, but useful for APIs)**
+List your main routes and their functions.
+
+```markdown
+## API Endpoints
+
+('/users' RegisterUsers) -> User registration
+('/verify-email' verifyEmail) -> Email verification after registration
+('/users'  allUsers) -> To get the list of all users
+('/users/:id' deleteUser) -> Delete a single user by id
+('/users/:id'  updateUser) -> Update a single user by id
+('/login' LoginUsers) -> To login the user
+('/refresh', refresh) - to refresh the access token
+('/logout', logout) -> to logout from the application
+('/forgot-password', forgotpassword) -> The forgot password route
+('/reset-password', resetPassword) -> The reset password route
+('/google', googleAuthStart) -> The google oAuth route
+('/google/callback', getAuthCallBackHandler) -> The google redirect handler route
+
+
+## Technologies
+
+- Node.js
+- Express.js
+- TypeScript
+- Prisma (or any ORM you used)
+- Redis (if used)
+- Zod (for validation)
