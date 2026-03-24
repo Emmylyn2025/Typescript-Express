@@ -22,6 +22,6 @@ export function handlePrismaError(error: unknown) {
 
   return {
     status: 500,
-    message: "Something went wrog please try again later"
+    message: "Something went wrong please try again later"
   }
 }

@@ -30,6 +30,12 @@ declare global {
   }
 }
 
+export type productTypes = {
+  name: string,
+  description?: string,
+  price: number
+}
+
 export interface tokenReturn {
   accessToken: string,
   refreshToken: string
@@ -46,6 +52,17 @@ export interface params {
 
 export interface reset {
   token: string,
+}
+
+export type productBody = {
+  name?: string,
+  price?: string,
+  InStock?: boolean,
+  description?: string
+}
+
+export type idParams = {
+  id: string;
 }
 
 export interface update {
