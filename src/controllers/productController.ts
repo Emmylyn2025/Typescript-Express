@@ -10,7 +10,7 @@ import cloudinary from "../cloudinary/cloudinary";
 
 
 export const addProduct = asyncHandler(async (req: Request<{}, {}, productTypes>, res: Response, next: NextFunction) => {
-  const { name, description, price } = req.body;
+  const { name, description, price, InStock } = req.body;
 
   const userId = req.user?.id
 
@@ -32,8 +32,9 @@ export const addProduct = asyncHandler(async (req: Request<{}, {}, productTypes>
         productImageUrl,
         name,
         Description: description,
-        price: Number(price),
-        uploaderId: userId as string
+        price,
+        uploaderId: userId as string,
+        InStock
       }
     })
 
@@ -48,22 +49,31 @@ export const addProduct = asyncHandler(async (req: Request<{}, {}, productTypes>
 });
 
 export const getProducts = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
-  const allowedFields = ['id', 'name', 'price', 'InStock', 'Description', 'uploaderId', "createdAt", "updatedAt"];
+  const allowedFields = ['id', 'name', 'price', 'InStock', 'Description', 'uploaderId', "createdAt", "updatedAt", "productImageUrl", "productImageId"];
 
   const builder = new QueryBuilder(req.query).filter(allowedFields).limitFields(allowedFields).sort(allowedFields).paginate();
 
-  try {
-    const users = await prisma.product.findMany(builder.query);
+  const products = await prisma.product.findMany({
+    ...builder.query,
+    select: {
+      ...(builder.query.select || {}),
+      uploader: {
+        select: {
+          id: true,
+          username: true,
+          role: true
+        }
+      }
+    }
+  });
 
-    res.status(200).json({
-      status: 'success',
-      data: users,
-      length: users.length
-    });
-  } catch (error) {
-    const { status, message } = handlePrismaError(error);
-    res.status(status).json({ message });
-  }
+  if (!products.length) return next(new appError("No products found", 404));
+
+  res.status(200).json({
+    status: 'success',
+    data: products,
+    length: products.length
+  });
 });
 
 export const getProductById = asyncHandler(async (req: Request<idParams>, res: Response, next: NextFunction) => {
@@ -75,6 +85,15 @@ export const getProductById = asyncHandler(async (req: Request<idParams>, res: R
   const product = await prisma.product.findUnique({
     where: {
       id: productId
+    },
+    include: {
+      uploader: {
+        select: {
+          id: true,
+          username: true,
+          role: true
+        }
+      }
     }
   });
 
@@ -86,12 +105,20 @@ export const getProductById = asyncHandler(async (req: Request<idParams>, res: R
   });
 });
 
-
 export const deleteProduct = asyncHandler(async (req: Request<idParams>, res: Response, next: NextFunction) => {
   const productId = req.params.id;
-
+  const userId = req.user?.id;
   //Validate the id
   if (!isUUID(productId)) return next(new appError("Invalid id format", 400));
+
+  //Find product
+  const pp = await prisma.product.findUnique({
+    where: {
+      id: productId
+    }
+  });
+
+  if (pp?.uploaderId !== userId) return next(new appError("You are not allowed to delete this product", 403));
 
   try {
 
@@ -115,25 +142,44 @@ export const deleteProduct = asyncHandler(async (req: Request<idParams>, res: Re
   }
 });
 
-
 export const updateProduct = asyncHandler(async (req: Request<idParams, {}, productBody>, res: Response, next: NextFunction) => {
   const { name, price, InStock, description } = req.body;
   const { id } = req.params;
 
-  const numPrice = Number(price);
 
   //Validate the id 
   if (!isUUID(id)) return next(new appError("Invalid id format", 400));
 
   try {
 
+    let productImageId;
+    let productImageUrl;
+
+    if (req.file) {
+      const old = await prisma.product.findUnique({
+        where: {
+          id
+        }
+      });
+
+      //Delete old image from cloudinary
+      await cloudinary.uploader.destroy(old?.productImageId as string);
+
+      const result = await uploadToCloudinary(req.file?.path);
+
+      productImageId = result?.productImageId;
+      productImageUrl = result?.productImageUrl;
+    }
+
     const product = await prisma.product.update({
       where: {
         id
       },
       data: {
+        productImageId,
+        productImageUrl,
         name,
-        price: numPrice,
+        price,
         InStock,
         Description: description
       }

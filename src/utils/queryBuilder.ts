@@ -1,4 +1,5 @@
 import { ParsedQs } from "qs";
+import { appError } from "./appError";
 
 class QueryBuilder {
   query: any;
@@ -17,6 +18,10 @@ class QueryBuilder {
     for (const key in filters) {
       if (allowedFields.includes(key)) {
         safeFilters[key] = filters[key]
+
+        if (key === 'InStock') {
+          safeFilters[key] = filters[key] === "true";
+        }
       }
     }
 

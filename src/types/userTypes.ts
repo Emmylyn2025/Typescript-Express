@@ -33,7 +33,8 @@ declare global {
 export type productTypes = {
   name: string,
   description?: string,
-  price: number
+  price: number,
+  InStock?: boolean
 }
 
 export interface tokenReturn {
@@ -56,7 +57,7 @@ export interface reset {
 
 export type productBody = {
   name?: string,
-  price?: string,
+  price?: number,
   InStock?: boolean,
   description?: string
 }
