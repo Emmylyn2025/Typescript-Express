@@ -192,7 +192,43 @@ export const allUsers = asyncHandler(async (req: Request<{}, {}, {}, userQuery>,
   const builder = new QueryBuilder(req.query).filter(allowedFields).limitFields(allowedFields).sort(allowedFields).paginate();
 
   try {
-    const users = await prisma.user.findMany(builder.query);
+    const users = await prisma.user.findMany({
+      ...builder.query,
+      select: {
+        ...(builder.query.select || {}),
+        products: {
+          select: {
+            id: true,
+            name: true,
+            price: true
+          }
+        },
+        carts: {
+          select: {
+            id: true
+          }
+        },
+        orders: {
+          select: {
+            id: true,
+            status: true,
+            createdAt: true,
+            total: true,
+            orderItems: {
+              select: {
+                quantity: true,
+                price: true,
+                product: {
+                  select: {
+                    productImageUrl: true
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    });
 
     res.status(200).json({
       status: 'success',
