@@ -6,7 +6,7 @@ import validation from "../middleware/zodValidationMiddleware";
 import { registerSchema, loginSchema, forgotSchema, productSchema, updateSchema } from "../zod/schema";
 import { upload } from "../multer/multer";
 import { addToCart, getUserCart, updateCartItem, removeFromCart, clearCart } from "../controllers/cartController";
-import { createOrder } from "../controllers/orderController";
+import { createOrder, viewOrders, deleteOrder } from "../controllers/orderController";
 
 const router = Router();
 
@@ -43,4 +43,7 @@ router.get('/cart/clear', auth, clearCart);
 
 //Order routes
 router.get('/order', auth, createOrder);
+router.get('/order/view', auth, viewOrders);
+router.delete('/order/:id', auth, deleteOrder);
+
 export default router;

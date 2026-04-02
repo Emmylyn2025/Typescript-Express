@@ -1,6 +1,8 @@
 import { NextFunction, Request, Response } from "express"
 import { asyncHandler, appError } from "../utils/appError"
+import QueryBuilder from "../utils/queryBuilder";
 import prisma from "../prisma/prismaClient";
+import { handlePrismaError } from "../utils/handleErrorPrisma";
 
 
 export const createOrder = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
@@ -18,6 +20,8 @@ export const createOrder = asyncHandler(async (req: Request, res: Response, next
           productId: true,
           product: {
             select: {
+              productImageUrl: true,
+              name: true,
               price: true
             }
           },
@@ -35,6 +39,7 @@ export const createOrder = asyncHandler(async (req: Request, res: Response, next
 
   let total = 0;
 
+  //Calculate the total price
   cart.items.forEach((item) => {
     total = (item.quantity * item.product.price) + total;
   });
@@ -78,25 +83,34 @@ export const createOrder = asyncHandler(async (req: Request, res: Response, next
 export const viewOrders = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
   const userId = req.user?.id as string;
 
-  //Get user orders
+  const allowedFields = ["id", "status", "total", "createdAt", "updatedAt"];
+
+  const builder = new QueryBuilder(req.query).filter(allowedFields).limitFields(allowedFields).sort(allowedFields).paginate();
+
+  //Get all orders
   const orders = await prisma.orders.findMany({
+    ...builder.query,
     where: {
+      ...(builder.query.where || {}),
       userId
     },
     select: {
-      id: true,
-      status: true,
-      total: true,
+      ...(builder.query.select || {}),
       orderItems: {
         select: {
           orderId: true,
           productId: true,
           price: true,
-          quantity: true
+          quantity: true,
+          product: {
+            select: {
+              productImageUrl: true
+            }
+          }
         }
       }
     }
-  });
+  })
 
 
   if (orders.length === 0 || !orders) {
@@ -107,4 +121,55 @@ export const viewOrders = asyncHandler(async (req: Request, res: Response, next:
     status: 'success',
     data: orders
   });
+});
+
+export const deleteOrder = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+  const userId = req.user?.id as string;
+  const id = req.params?.id as string;
+
+  //Find user
+  const order = await prisma.orders.findUnique({
+    where: {
+      id
+    }
+  });
+
+  if (!order) return next(new appError("Order not found", 404));
+  if (order.userId !== userId) return next(new appError("This is not your order to delete", 403));
+
+  try {
+
+    //Find the order by user id
+    const order = await prisma.orders.delete({
+      where: {
+        id
+      },
+      select: {
+        id: true,
+        total: true,
+        status: true,
+        orderItems: {
+          select: {
+            price: true,
+            quantity: true,
+            productId: true,
+            product: {
+              select: {
+                productImageUrl: true
+              }
+            }
+          }
+        }
+      }
+    });
+
+    res.status(200).json({
+      message: "Order deleted successfully",
+      order
+    });
+
+  } catch (error) {
+    const { status, message } = handlePrismaError(error);
+    res.status(status).json({ message });
+  }
 });

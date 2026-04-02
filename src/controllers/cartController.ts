@@ -17,7 +17,7 @@ export const addToCart = asyncHandler(async (req: Request<{}, {}, addProd>, res:
   //Validate product id
   if (!isUUID(productId)) return next(new appError("Invalid product id format", 400));
 
-  if (quantity < 1) return next(new appError("Product quantity cannot be negative", 400));
+  if (quantity < 1) return next(new appError("Product quantity cannot be negative or zero", 400));
 
   //Check if the products exists in the database
   const product = await prisma.product.findUnique({
@@ -120,8 +120,8 @@ export const updateCartItem = asyncHandler(async (req: Request, res: Response, n
 
   if (!isUUID(itemId)) return next(new appError("Invalid item id id format", 400));
 
-  if (quantity < 0) {
-    return next(new appError("Item quantity cannot be less than zero", 400))
+  if (quantity <= 0) {
+    return next(new appError("Item quantity cannot be less than or equal to zero", 400))
   }
 
   //Check if the item exists in cart item

@@ -32,7 +32,7 @@ model Product {
   updatedAt       DateTime @updatedAt
   InStock         Boolean? @default(true)
 
-  uploader   User         @relation(fields: [uploaderId], references: [id])
+  uploader   User         @relation(fields: [uploaderId], references: [id], onDelete: Cascade)
   cartItems  CartItems[]
   orderItems OrderItems[]
 }
@@ -45,7 +45,7 @@ enum Role {
 model Cart {
   id        String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   userId    String      @unique @db.Uuid
-  user      User        @relation(fields: [userId], references: [id])
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   items     CartItems[]
   createdAt DateTime    @default(now())
   updatedAt DateTime    @updatedAt
@@ -56,7 +56,7 @@ model CartItems {
   productId String   @db.Uuid
   cartId    String?  @db.Uuid
   product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-  cart      Cart?    @relation(fields: [cartId], references: [id])
+  cart      Cart?    @relation(fields: [cartId], references: [id], onDelete: Cascade)
   quantity  Int      @default(1)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -65,7 +65,7 @@ model CartItems {
 model Orders {
   id         String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   userId     String?      @db.Uuid
-  user       User?        @relation(fields: [userId], references: [id])
+  user       User?        @relation(fields: [userId], references: [id], onDelete: Cascade)
   total      Float
   status     OrderStatus  @default(PENDING)
   createdAt  DateTime     @default(now())

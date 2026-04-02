@@ -15,9 +15,10 @@ export type forget = {
 }
 
 export interface payLoadToken {
-  id: string,
-  username: string,
-  age: number,
+  id: string
+  username: string
+  email: string
+  isEmailVer: boolean
   role: 'USER' | 'ADMIN'
 }
 
@@ -69,7 +70,9 @@ export type idParams = {
 export interface update {
   username?: string,
   age?: number,
-  role?: 'USER' | 'ADMIN'
+  role?: 'USER' | 'ADMIN',
+  orderId?: string,
+  status?: 'PENDING' | 'DELIVERED' | 'CANCELLED'
 }
 
 export interface pass {
