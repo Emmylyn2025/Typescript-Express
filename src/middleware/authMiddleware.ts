@@ -1,12 +1,16 @@
 import { Request, Response, NextFunction } from "express";
 import { appError } from "../utils/appError";
 import { verifyAccessToken } from "../utils/token";
+import redisClient from "../redis/redis";
 
-export const auth = (req: Request, res: Response, next: NextFunction) => {
+export const auth = async (req: Request, res: Response, next: NextFunction) => {
   const headers = req.headers.authorization;
   if (!headers) return next(new appError("No access token available", 401));
 
   const token = headers?.split(" ")[1];
+  const blackListToken = await redisClient.get(`blacklist${token}`);
+
+  if (blackListToken) return next(new appError("You have logged out", 401));
 
   //Decode access token
   const decoded = verifyAccessToken(token);

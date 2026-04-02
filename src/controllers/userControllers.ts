@@ -12,7 +12,7 @@ import { validate as isUUID } from "uuid";
 import crypto from "crypto";
 import { sendEmail } from "../utils/email";
 import { googleClient } from "../utils/google";
-import jwt from "jsonwebtoken"
+import { removePassword } from "../utils/removePassword";
 
 export const RegisterUsers = asyncHandler(async (req: Request<{}, {}, User>, res: Response, next: NextFunction) => {
   const { username, email, password, age } = req.body;
@@ -106,6 +106,14 @@ export const LoginUsers = asyncHandler(async (req: Request<{}, {}, Login>, res: 
   const user = await prisma.user.findUnique({
     where: {
       email: email
+    },
+    select: {
+      id: true,
+      username: true,
+      email: true,
+      password: true,
+      role: true,
+      isEmailVer: true
     }
   });
 
@@ -122,18 +130,24 @@ export const LoginUsers = asyncHandler(async (req: Request<{}, {}, Login>, res: 
 
   if (user.isEmailVer === false) return next(new appError("You haven't verified your email", 400));
 
+  const removedPassword = removePassword(user);
+
   //If password is valid
-  const { accessToken, refreshToken } = generateTokens(user);
+  const { accessToken, refreshToken } = generateTokens(removedPassword);
 
   //Save refresh token in redis
   await redisClient.set(`user:${user.id}`, refreshToken, { EX: 2592000 });
+
+  //store accesstoken in redis for cookie expiration
+  await redisClient.set(`access${user.id}`, accessToken, { EX: 1800 });
 
   //Save refresh token in httpOnly cookie
   saveRefreshToken(res, refreshToken);
 
   res.status(200).json({
     message: "Login Successful",
-    token: accessToken
+    token: accessToken,
+    user: removedPassword
   });
 });
 
@@ -171,6 +185,10 @@ export const logout = asyncHandler(async (req: Request, res: Response, next: Nex
 
   //Check if it is valid in redis
   const redis = await redisClient.get(`user:${user.id}`);
+  const access = await redisClient.get(`access${user.id}`);
+
+  //save the access token as blacklist
+  await redisClient.set(`blacklist${access}`, "true", { EX: 3600 });
 
   if (!redis) return next(new appError("Invalid refresh token or Expired refresh token", 401));
 
@@ -192,7 +210,45 @@ export const allUsers = asyncHandler(async (req: Request<{}, {}, {}, userQuery>,
   const builder = new QueryBuilder(req.query).filter(allowedFields).limitFields(allowedFields).sort(allowedFields).paginate();
 
   try {
-    const users = await prisma.user.findMany(builder.query);
+    const users = await prisma.user.findMany({
+      ...builder.query,
+      select: {
+        ...(builder.query.select || {}),
+        products: {
+          select: {
+            id: true,
+            name: true,
+            price: true
+          }
+        },
+        carts: {
+          select: {
+            id: true
+          }
+        },
+        orders: {
+          select: {
+            id: true,
+            status: true,
+            createdAt: true,
+            total: true,
+            orderItems: {
+              select: {
+                quantity: true,
+                price: true,
+                productId: true,
+                product: {
+                  select: {
+                    productImageUrl: true,
+                    name: true
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    });
 
     res.status(200).json({
       status: 'success',
@@ -305,7 +361,7 @@ export const updateUser = asyncHandler(async (req: Request<params, {}, update>, 
   const { id } = req.params;
 
   if (!isUUID(id)) return next(new appError("Invalid id format", 400));
-  let { username, age, role } = req.body;
+  let { username, age, role, orderId, status } = req.body;
 
   try {
 
@@ -314,12 +370,27 @@ export const updateUser = asyncHandler(async (req: Request<params, {}, update>, 
       data: {
         username,
         age,
-        role
+        role,
+        orders: {
+          update: {
+            where: {
+              id: orderId
+            },
+            data: {
+              status
+            }
+          }
+        }
       },
       select: {
         username: true,
         age: true,
-        role: true
+        role: true,
+        orders: {
+          select: {
+            status: true
+          }
+        }
       }
     });
 
@@ -421,4 +492,4 @@ export const getAuthCallBackHandler = asyncHandler(async (req: Request, res: Res
     message: "Google Login Successful",
     token: accessToken
   });
-})
+});

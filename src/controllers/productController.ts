@@ -7,6 +7,7 @@ import { handlePrismaError } from "../utils/handleErrorPrisma";
 import { validate as isUUID } from "uuid";
 import uploadToCloudinary from "../cloudinary/cloudianryHelpers";
 import cloudinary from "../cloudinary/cloudinary";
+import redisClient from "../redis/redis";;
 
 
 export const addProduct = asyncHandler(async (req: Request<{}, {}, productTypes>, res: Response, next: NextFunction) => {
@@ -28,8 +29,8 @@ export const addProduct = asyncHandler(async (req: Request<{}, {}, productTypes>
   try {
     const newProduct = await prisma.product.create({
       data: {
-        productImageId,
-        productImageUrl,
+        productImageId: productImageId as string,
+        productImageUrl: productImageUrl as string,
         name,
         Description: description,
         price,
@@ -37,6 +38,9 @@ export const addProduct = asyncHandler(async (req: Request<{}, {}, productTypes>
         InStock
       }
     })
+
+    const keys = await redisClient.keys("products:*");
+    if (keys.length) await redisClient.del(keys);
 
     res.status(201).json({
       message: "product created successfully",
@@ -50,6 +54,19 @@ export const addProduct = asyncHandler(async (req: Request<{}, {}, productTypes>
 
 export const getProducts = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
   const allowedFields = ['id', 'name', 'price', 'InStock', 'Description', 'uploaderId', "createdAt", "updatedAt", "productImageUrl", "productImageId"];
+
+  const cacheSet = `products:${JSON.stringify(req.query)}`;
+
+  console.log(cacheSet);
+
+  const cacheProd = await redisClient.get(cacheSet);
+
+  if (cacheProd) {
+    return res.status(200).json({
+      status: 'success',
+      data: JSON.parse(cacheProd)
+    })
+  }
 
   const builder = new QueryBuilder(req.query).filter(allowedFields).limitFields(allowedFields).sort(allowedFields).paginate();
 
@@ -68,6 +85,10 @@ export const getProducts = asyncHandler(async (req: Request, res: Response, next
   });
 
   if (!products.length) return next(new appError("No products found", 404));
+
+  await redisClient.set(cacheSet, JSON.stringify(products), {
+    EX: 60 + 60 + 60 + 60 + 60
+  })
 
   res.status(200).json({
     status: 'success',
@@ -120,26 +141,30 @@ export const deleteProduct = asyncHandler(async (req: Request<idParams>, res: Re
 
   if (pp?.uploaderId !== userId) return next(new appError("You are not allowed to delete this product", 403));
 
-  try {
+  // try {
 
-    const product = await prisma.product.delete({
-      where: {
-        id: productId
-      }
-    });
+  const product = await prisma.product.delete({
+    where: {
+      id: productId
+    }
+  });
 
-    //delete from cloudinary
-    await cloudinary.uploader.destroy(product.productImageId as string);
+  //delete from cloudinary
+  await cloudinary.uploader.destroy(product.productImageId as string);
 
-    res.status(200).json({
-      message: "Product deleted successfully",
-      product
-    });
+  const keys = await redisClient.keys("products:*");
+  if (keys.length) await redisClient.del(keys);
 
-  } catch (error) {
-    const { status, message } = handlePrismaError(error);
-    res.status(status).json({ message });
-  }
+  res.status(200).json({
+    message: "Product deleted successfully",
+    product
+  });
+
+  //} 
+  //catch (error) {
+  //   const { status, message } = handlePrismaError(error);
+  //   res.status(status).json({ message });
+  // }
 });
 
 export const updateProduct = asyncHandler(async (req: Request<idParams, {}, productBody>, res: Response, next: NextFunction) => {
@@ -184,6 +209,9 @@ export const updateProduct = asyncHandler(async (req: Request<idParams, {}, prod
         Description: description
       }
     });
+
+    const keys = await redisClient.keys("products:*");
+    if (keys.length) await redisClient.del(keys);
 
     res.status(200).json({
       message: "Product Updated successfully",
