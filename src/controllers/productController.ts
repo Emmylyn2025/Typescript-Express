@@ -22,8 +22,8 @@ export const addProduct = asyncHandler(async (req: Request<{}, {}, productTypes>
 
   //console.log(result);
 
-  const productImageId = result?.productImageId;
-  const productImageUrl = result?.productImageUrl
+  const productImageId = result?.productImageId as string;
+  const productImageUrl = result?.productImageUrl as string;
 
   try {
     const newProduct = await prisma.product.create({
