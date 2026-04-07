@@ -4,18 +4,36 @@ import { verifyAccessToken } from "../utils/token";
 import redisClient from "../redis/redis";
 
 export const auth = async (req: Request, res: Response, next: NextFunction) => {
-  const headers = req.headers.authorization;
-  if (!headers) return next(new appError("No access token available", 401));
+  // const headers = req.headers.authorization;
+  // if (!headers) return next(new appError("No access token available", 401));
+  let token: string | undefined;
 
-  const token = headers?.split(" ")[1];
+  if (req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
+    token = req.headers.authorization.split(" ")[1];
+  }
+
+  if (!token && req.cookies?.accessToken) {
+    token = req.cookies?.accessToken;
+
+    if (!token) {
+      return res.status(401).json({
+        message: "Not authenticated"
+      });
+    }
+  }
+
+  //let token = headers?.split(" ")[1];
+
+  //Black listed token after logout
   const blackListToken = await redisClient.get(`blacklist${token}`);
-
   if (blackListToken) return next(new appError("You have logged out", 401));
 
   //Decode access token
-  const decoded = verifyAccessToken(token);
+  const decoded = verifyAccessToken(token as string);
   //console.log(decoded);
   req.user = decoded;
+
+  //console.log(decoded);
 
   next();
 };

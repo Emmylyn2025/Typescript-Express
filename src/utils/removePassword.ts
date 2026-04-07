@@ -1,7 +1,10 @@
-import { payLoadToken } from "../types/userTypes"
+import { payLoadVerify } from "../types/userTypes"
 
-interface info extends payLoadToken {
+export interface info extends payLoadVerify {
+  email: string
+  isEmailVer: boolean
   password: string
+  role: 'USER' | 'ADMIN'
 }
 
 export const removePassword = (user: info) => {

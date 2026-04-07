@@ -1,25 +1,31 @@
-export type User = {
-  username: string,
-  email: string,
-  password: string,
-  age: number,
-}
 
 export type Login = {
   email: string,
   password: string
 }
 
+export type User = Login & {
+  username: string,
+}
+
 export type forget = {
   email: string
 }
 
-export interface payLoadToken {
-  id: string
-  username: string
+export interface payLoadVerify {
+  id: string,
+  username: string,
+}
+
+export interface payLoadToken extends payLoadVerify {
   email: string
   isEmailVer: boolean
+  // sessionId: string
   role: 'USER' | 'ADMIN'
+}
+
+export interface payLoadTokenSession extends payLoadToken {
+  sessionId: string
 }
 
 //For req.user
@@ -43,11 +49,6 @@ export interface tokenReturn {
   refreshToken: string
 }
 
-export interface payLoadVerify {
-  id: string,
-  username: string,
-}
-
 export interface params {
   id: string
 }
@@ -69,7 +70,6 @@ export type idParams = {
 
 export interface update {
   username?: string,
-  age?: number,
   role?: 'USER' | 'ADMIN',
   orderId?: string,
   status?: 'PENDING' | 'DELIVERED' | 'CANCELLED'

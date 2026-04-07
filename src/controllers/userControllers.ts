@@ -5,17 +5,21 @@ import prisma from "../prisma/prismaClient";
 import { hashPassword, confirmPassword } from "../utils/hashPassword";
 import { User, Login, forget, userQuery, params, update, reset, pass, payLoadToken } from "../types/userTypes";
 import redisClient from "../redis/redis";
-import { generateTokens, saveRefreshToken, verifyRefreshToken, verifyToken, decodedEmailToken } from "../utils/token";
+import { generateTokens, saveRefreshToken, verifyRefreshToken, verifyToken, decodedEmailToken, verifyAccessToken } from "../utils/token";
 import { asyncHandler, appError } from "../utils/appError";
 import QueryBuilder from "../utils/queryBuilder";
 import { validate as isUUID } from "uuid";
 import crypto from "crypto";
-import { sendEmail } from "../utils/email";
+import { sendEmail } from "../email/templates";
 import { googleClient } from "../utils/google";
 import { removePassword } from "../utils/removePassword";
+import { info } from "../utils/removePassword";
+
+
+export let verifyUrl: string
 
 export const RegisterUsers = asyncHandler(async (req: Request<{}, {}, User>, res: Response, next: NextFunction) => {
-  const { username, email, password, age } = req.body;
+  const { username, email, password } = req.body;
 
   //Check if user exists before
   const user = await prisma.user.findUnique({
@@ -36,7 +40,6 @@ export const RegisterUsers = asyncHandler(async (req: Request<{}, {}, User>, res
     data: {
       username,
       email,
-      age,
       password: hash
     }
   });
@@ -44,19 +47,12 @@ export const RegisterUsers = asyncHandler(async (req: Request<{}, {}, User>, res
   //generate email verification token
   const token = verifyToken(newUser);
 
-  const verifyUrl = `http://localhost:${process.env.PORT}/typescript/verify-email?token=${token}`;
+  verifyUrl = `http://localhost:${process.env.PORT}/typescript/verify-email?token=${token}`;
 
   await sendEmail(
     newUser.email,
-    "Email verification after registration",
-    `
-    <p>
-      Click the link below to verify you email <br>
-      <a href=${verifyUrl}>This link</a><br>
-      <p>Hence this link is only valid for 24 hours</p>
-    </p>
-    `,
-  )
+    verifyUrl
+  );
 
   res.status(201).json({
     status: 'success',
@@ -133,7 +129,7 @@ export const LoginUsers = asyncHandler(async (req: Request<{}, {}, Login>, res: 
   const removedPassword = removePassword(user);
 
   //If password is valid
-  const { accessToken, refreshToken } = generateTokens(removedPassword);
+  const { accessToken, refreshToken } = generateTokens(removedPassword as info);
 
   //Save refresh token in redis
   await redisClient.set(`user:${user.id}`, refreshToken, { EX: 2592000 });
@@ -183,6 +179,23 @@ export const logout = asyncHandler(async (req: Request, res: Response, next: Nex
   if (!refreshCookie) return next(new appError("No refresh token available in cookie", 401));
   const user = verifyRefreshToken(refreshCookie);
 
+  //Get access token fom cookie
+  const accessToken = req.cookies?.accessToken;
+  if (accessToken) {
+    const user2 = verifyAccessToken(accessToken);
+
+    if (user.sessionId === user2.sessionId) {
+
+      res.clearCookie('accessToken');
+      res.clearCookie('refreshtoken');
+
+      return res.status(200).json({
+        message: "Google logout successful"
+      });
+    }
+  }
+
+  //console.log(user);
   //Check if it is valid in redis
   const redis = await redisClient.get(`user:${user.id}`);
   const access = await redisClient.get(`access${user.id}`);
@@ -205,7 +218,7 @@ export const logout = asyncHandler(async (req: Request, res: Response, next: Nex
 });
 
 export const allUsers = asyncHandler(async (req: Request<{}, {}, {}, userQuery>, res: Response, next: NextFunction) => {
-  const allowedFields = ['username', 'email', 'createdAt', 'age', 'role', 'id', "isEmailVer"];
+  const allowedFields = ['username', 'email', 'createdAt', 'role', 'id', "isEmailVer"];
 
   const builder = new QueryBuilder(req.query).filter(allowedFields).limitFields(allowedFields).sort(allowedFields).paginate();
 
@@ -258,6 +271,7 @@ export const allUsers = asyncHandler(async (req: Request<{}, {}, {}, userQuery>,
   } catch (error) {
     const { status, message } = handlePrismaError(error);
     res.status(status).json({ message });
+    console.log(error);
   }
 })
 
@@ -285,10 +299,6 @@ export const forgotpassword = asyncHandler(async (req: Request<{}, {}, forget>, 
   await sendEmail(
     user.email,
     "Reset password link",
-    `<p>Click the link below to reset your password</p>
-     <p>Note: It is only valid for 10 minutes</p>
-     <a href=${url}>This link</a>
-    `
   )
 
   res.status(200).json({
@@ -361,7 +371,7 @@ export const updateUser = asyncHandler(async (req: Request<params, {}, update>, 
   const { id } = req.params;
 
   if (!isUUID(id)) return next(new appError("Invalid id format", 400));
-  let { username, age, role, orderId, status } = req.body;
+  let { username, role, orderId, status } = req.body;
 
   try {
 
@@ -369,7 +379,6 @@ export const updateUser = asyncHandler(async (req: Request<params, {}, update>, 
       where: { id },
       data: {
         username,
-        age,
         role,
         orders: {
           update: {
@@ -384,7 +393,6 @@ export const updateUser = asyncHandler(async (req: Request<params, {}, update>, 
       },
       select: {
         username: true,
-        age: true,
         role: true,
         orders: {
           select: {
@@ -413,7 +421,7 @@ export const googleAuthStart = asyncHandler(async (req: Request, res: Response, 
     scope: ["openid", "email", "profile"]
   });
 
-  console.log(url);
+  //console.log(url);
 
   return res.redirect(url);
 });
@@ -427,7 +435,7 @@ export const getAuthCallBackHandler = asyncHandler(async (req: Request, res: Res
 
   const client = googleClient();
 
-  const { tokens } = await client.getToken(code)
+  const { tokens } = await client.getToken(code);
 
   if (!tokens.id_token) return next(new appError("Google id token is not present", 400));
 
@@ -440,7 +448,7 @@ export const getAuthCallBackHandler = asyncHandler(async (req: Request, res: Res
   const email = payload?.email;
   const emailVerified = payload?.email_verified
 
-  if (!email || !emailVerified) return next(new appError("This email is not verified by google", 400));
+  if (!email || emailVerified !== true) return next(new appError("This email is not verified by google", 400));
 
   const normalizedEmail = email.toLowerCase().trim();
 
@@ -450,46 +458,55 @@ export const getAuthCallBackHandler = asyncHandler(async (req: Request, res: Res
     }
   });
 
+  if (user && user.isEmailVer === false) {
+    await prisma.user.update({
+      where: {
+        id: user?.id
+      },
+      data: {
+        isEmailVer: true
+      }
+    })
+  }
+
   if (!user) {
     //Create a new user if the user does not exists
     const randomPassword = await crypto.randomBytes(16).toString('hex');
     const hashedPassword = await hashPassword(randomPassword);
 
     //Make google create a new user
-    await prisma.user.create({
+    user = await prisma.user.create({
       data: {
         email: normalizedEmail,
         password: hashedPassword,
         role: 'USER',
         username: payload?.given_name,
-        isEmailVer: true,
-        age: 20
+        isEmailVer: true
       }
     })
 
-  } else {
-    if (user.isEmailVer === false) {
-      await prisma.user.update({
-        where: {
-          id: user.id
-        },
-        data: {
-          isEmailVer: true
-        }
-      })
-    }
   }
 
-  const { accessToken, refreshToken } = generateTokens(user as payLoadToken);
+  const { accessToken, refreshToken } = generateTokens(user);
 
   //save refresh token in redis
-  await redisClient.set(`user:${user?.id}`, refreshToken, { EX: 2592000 });
+  await redisClient.set(`user:${user.id}`, refreshToken, { EX: 2592000 });
 
   //Save refresh token in httpOnly cookie
   saveRefreshToken(res, refreshToken);
 
-  res.status(200).json({
-    message: "Google Login Successful",
-    token: accessToken
+  //Save access token in httpOnly cookie too
+  res.cookie("accessToken", accessToken, {
+    httpOnly: true,
+    secure: false, // true in production
+    sameSite: "lax",
+    maxAge: 30 * 60 * 1000
   });
+
+  // res.status(200).json({
+  //   message: "Google Login Successful",
+  //   token: accessToken
+  // });
+
+  res.redirect("http://localhost:3000/typescript/products");
 });
