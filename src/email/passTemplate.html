@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reset Your Password</title>
+  <style>
+    /* Reset styles for email clients */
+    body,
+    table,
+    td,
+    p,
+    a,
+    li,
+    blockquote {
+      -webkit-text-size-adjust: 100%;
+      -ms-text-size-adjust: 100%;
+    }
+
+    table,
+    td {
+      mso-table-lspace: 0pt;
+      mso-table-rspace: 0pt;
+    }
+
+    img {
+      -ms-interpolation-mode: bicubic;
+      border: 0;
+      height: auto;
+      line-height: 100%;
+      outline: none;
+      text-decoration: none;
+    }
+
+    /* Responsive styles */
+    @media screen and (max-width: 600px) {
+      .email-container {
+        width: 100% !important;
+        max-width: 100% !important;
+      }
+
+      .content-padding {
+        padding: 30px 20px !important;
+      }
+
+      .mobile-text {
+        font-size: 16px !important;
+      }
+
+      .mobile-heading {
+        font-size: 24px !important;
+      }
+    }
+  </style>
+</head>
+
+<body
+  style="margin: 0; padding: 0; background-color: #f3f4f6; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
+
+  <!-- Email Container -->
+  <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+    <tr>
+      <td align="center" style="padding: 40px 20px;">
+
+        <!-- Main Card -->
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" class="email-container"
+          style="max-width: 600px; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);">
+
+          <!-- Header with Green Gradient -->
+          <tr>
+            <td align="center"
+              style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 50px 40px; text-align: center;">
+
+              <h1 class="mobile-heading"
+                style="color: #ffffff; font-size: 28px; font-weight: 600; margin: 0 0 10px 0; letter-spacing: -0.5px;">
+                Reset Your Password</h1>
+              <p style="color: rgba(255, 255, 255, 0.9); font-size: 16px; margin: 0; line-height: 1.5;">We received a
+                request to reset your password</p>
+            </td>
+          </tr>
+
+          <!-- Content -->
+          <tr>
+            <td class="content-padding" style="padding: 50px 40px;">
+
+              <p class="mobile-text" style="color: #374151; font-size: 16px; line-height: 1.7; margin: 0 0 25px 0;">
+                Hi there,
+              </p>
+
+              <p class="mobile-text" style="color: #374151; font-size: 16px; line-height: 1.7; margin: 0 0 25px 0;">
+                We received a request to reset the password for your account. Click the button below to create a new
+                password:
+              </p>
+
+              <!-- CTA Button - Green -->
+              <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%"
+                style="margin: 35px 0;">
+                <tr>
+                  <td align="center">
+                    <a href="{{reset_link}}"
+                      style="display: inline-block; padding: 18px 40px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #ffffff; text-decoration: none; border-radius: 12px; font-weight: 600; font-size: 16px; letter-spacing: 0.5px; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);">Reset
+                      Password</a>
+                  </td>
+                </tr>
+              </table>
+
+              <p class="mobile-text" style="color: #6b7280; font-size: 15px; line-height: 1.6; margin: 0 0 20px 0;">
+                Or copy and paste this link into your browser:
+              </p>
+
+              <!-- Link Box -->
+              <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%"
+                style="background-color: #f9fafb; border-radius: 8px; border-left: 4px solid #10b981; margin: 0 0 30px 0;">
+                <tr>
+                  <td style="padding: 16px 20px; word-break: break-all;">
+                    <a href="{{reset_link}}"
+                      style="color: #059669; font-size: 14px; text-decoration: none; font-family: 'Courier New', monospace;">{{reset_link}}</a>
+                  </td>
+                </tr>
+              </table>
+
+              <p class="mobile-text" style="color: #6b7280; font-size: 15px; line-height: 1.6; margin: 0 0 15px 0;">
+                This link will expire in <strong style="color: #374151;">10 minutes</strong> for security reasons.
+              </p>
+
+              <p class="mobile-text" style="color: #6b7280; font-size: 15px; line-height: 1.6; margin: 0;">
+                If you didn't request a password reset, you can safely ignore this email. Your password will remain
+                unchanged.
+              </p>
+
+            </td>
+          </tr>
+
+          <!-- Divider -->
+          <tr>
+            <td style="padding: 0 40px;">
+              <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                <tr>
+                  <td style="border-top: 1px solid #e5e7eb; height: 1px; font-size: 0; line-height: 0;">&nbsp;</td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="padding: 30px 40px; text-align: center;">
+
+              <!-- Social Links -->
+              <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 auto 20px;">
+                <tr>
+                  <td style="padding: 0 8px;">
+                    <a href="#"
+                      style="display: block; width: 36px; height: 36px; background-color: #f3f4f6; border-radius: 50%; text-align: center; line-height: 36px; text-decoration: none;">
+                      <img
+                        src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iIzZiNzI4MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTE4IDIuMTVWMjIuODVDMTggMjMuNDQgMTcuNDQgMjQgMTYuODUgMjRINy4xNUM2LjU2IDI0IDYgMjMuNDQgNiAyMi44NVY2SDE4VjIuMTVaTTE5IDBINFYySDE5VjBaIi8+Cjwvc3ZnPg=="
+                        alt="Twitter" width="16" height="16" style="vertical-align: middle;" />
+                    </a>
+                  </td>
+                  <td style="padding: 0 8px;">
+                    <a href="#"
+                      style="display: block; width: 36px; height: 36px; background-color: #f3f4f6; border-radius: 50%; text-align: center; line-height: 36px; text-decoration: none;">
+                      <img
+                        src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iIzZiNzI4MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTEyIDJDNi40OCAyIDIgNi40OCAyIDEyQzIgMTcuNTIgNi40OCAyMiAxMiAyMkMxNy41MiAyMiAyMiAxNy41MiAyMiAxMkMyMiA2LjQ4IDE3LjUyIDIgMTIgMlpNMTAgMTdMNSAxMkwxMC43IDYuM0wxMiAxMSAxNyA2TDEwIDE3WiIgdHJhbnNmb3JtPSJyb3RhdGUoOTAgMTIgMTIpIi8+Cjwvc3ZnPg=="
+                        alt="LinkedIn" width="16" height="16" style="vertical-align: middle;" />
+                    </a>
+                  </td>
+                  <td style="padding: 0 8px;">
+                    <a href="#"
+                      style="display: block; width: 36px; height: 36px; background-color: #f3f4f6; border-radius: 50%; text-align: center; line-height: 36px; text-decoration: none;">
+                      <img
+                        src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iIzZiNzI4MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTEyIDJDNi40OCAyIDIgNi40OCAyIDEyQzIgMTcuNTIgNi40OCAyMiAxMiAyMkMxNy41MiAyMiAyMiAxNy41MiAyMiAxMkMyMiA2LjQ4IDE3LjUyIDIgMTIgMlpNMTEgMTdINlYxMkgxMVYxN1pNMTggMTdIMTNWMTJIMThWMTdaTTE4IDlINlY3SDE4VjlaIi8+Cjwvc3ZnPg=="
+                        alt="Website" width="16" height="16" style="vertical-align: middle;" />
+                    </a>
+                  </td>
+                </tr>
+              </table>
+
+              <p style="color: #9ca3af; font-size: 13px; line-height: 1.6; margin: 0 0 10px 0;">
+                Need help? Contact us at <a href="mailto:support@example.com"
+                  style="color: #059669; text-decoration: none;">support@example.com</a>
+              </p>
+
+              <p style="color: #9ca3af; font-size: 12px; line-height: 1.6; margin: 0;">
+                &copy; 2026 Your Company. All rights reserved.<br>
+                123 Business Street, City, Country
+              </p>
+
+            </td>
+          </tr>
+
+        </table>
+
+        <!-- System Info -->
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" class="email-container"
+          style="max-width: 600px; margin-top: 20px;">
+          <tr>
+            <td style="text-align: center; padding: 0 20px;">
+              <p style="color: #9ca3af; font-size: 12px; line-height: 1.5; margin: 0;">
+                This email was sent to {{user_email}}.<br>
+                If you did not request this password reset, please ignore this email or <a href="#"
+                  style="color: #6b7280; text-decoration: underline;">contact support</a> if you have concerns.
+              </p>
+            </td>
+          </tr>
+        </table>
+
+      </td>
+    </tr>
+  </table>
+
+</body>
+
+</html>

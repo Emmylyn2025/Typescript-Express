@@ -30,14 +30,37 @@ const transporter = nodemailer.createTransport({
 });
 
 export async function sendEmail(userEmail: string, verifyUrl: string) {
-  const htmlTemplate = fs.readFileSync("./src/email/template.html", "utf-8");
+  const htmlTemplate = fs.readFileSync("./src/email/tmp.html", "utf-8");
   const html = htmlTemplate.replace(/{{verification_link}}/g, verifyUrl);
+  const another = html.replace(/{{user_email}}/g, userEmail);
 
   const mailOptions = {
     from,
     to: userEmail,
     subject: 'Verify Your Email Address',
-    html: html,
+    html: another,
+  };
+
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    console.log('Verification email sent:', info.messageId);
+    return info;
+  } catch (error) {
+    console.error('Error sending email:', error);
+    throw error;
+  }
+}
+
+export async function sendResetPass(userEmail: string, resetUrl: string) {
+  const htmlTemplate = fs.readFileSync("./src/email/passTemplate.html", "utf-8");
+  const html = htmlTemplate.replace(/{{reset_link}}/g, resetUrl);
+  const final = html.replace(/{{user_email}}/g, userEmail);
+
+  const mailOptions = {
+    from,
+    to: userEmail,
+    subject: 'Verify Your Email Address',
+    html: final,
   };
 
   try {

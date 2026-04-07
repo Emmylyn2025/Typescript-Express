@@ -14,6 +14,7 @@ import { sendEmail } from "../email/templates";
 import { googleClient } from "../utils/google";
 import { removePassword } from "../utils/removePassword";
 import { info } from "../utils/removePassword";
+import { sendResetPass } from "../email/templates";
 
 
 export let verifyUrl: string
@@ -54,6 +55,8 @@ export const RegisterUsers = asyncHandler(async (req: Request<{}, {}, User>, res
     verifyUrl
   );
 
+  await redisClient.set(`registerToken${newUser.id}`, token, { EX: 3600 * 24 });
+
   res.status(201).json({
     status: 'success',
     message: "USer registered successfully, Make sure you verify your email",
@@ -80,6 +83,11 @@ export const verifyEmail = asyncHandler(async (req: Request, res: Response, next
   });
 
   if (!user) return next(new appError("User not found", 404));
+
+  //Check if the token has expired in redis
+  const userToken = await redisClient.get(`registerToken${user.id}`);
+
+  if (!userToken) return next(new appError("The email verification token has been expired", 400));
 
   //Update user email verification
   await prisma.user.update({
@@ -291,14 +299,14 @@ export const forgotpassword = asyncHandler(async (req: Request<{}, {}, forget>, 
   const randomToken = await crypto.randomBytes(32).toString('base64');
 
   //Save hased bytes in redis
-  await redisClient.set(`userReset:${randomToken}`, user.id, { EX: 10 });
+  await redisClient.set(`userReset:${randomToken}`, user.id, { EX: 60 * 10 });
 
   const url = `http://localhost:3000/typescript/reset-password?token=${randomToken}`;
 
   //Send the url link to the user email
-  await sendEmail(
+  await sendResetPass(
     user.email,
-    "Reset password link",
+    url,
   )
 
   res.status(200).json({
