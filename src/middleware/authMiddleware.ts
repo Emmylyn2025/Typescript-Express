@@ -12,6 +12,7 @@ export const auth = async (req: Request, res: Response, next: NextFunction) => {
     token = req.headers.authorization.split(" ")[1];
   }
 
+  //For google login
   if (!token && req.cookies?.accessToken) {
     token = req.cookies?.accessToken;
 

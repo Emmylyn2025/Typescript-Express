@@ -12,23 +12,29 @@ exports.saveRefreshToken = saveRefreshToken;
 const dotenv_1 = __importDefault(require("dotenv"));
 dotenv_1.default.config();
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
+const crypto_1 = __importDefault(require("crypto"));
 function generateTokens(user) {
     const accessSecret = process.env.accessToken;
     const refreshSecret = process.env.refreshToken;
     if (!accessSecret || !refreshSecret) {
         throw new Error("JWT are not defined in environmental variables");
     }
+    const sessionId = crypto_1.default.randomBytes(16).toString('hex');
     const accessToken = jsonwebtoken_1.default.sign({
-        id: user.id,
-        username: user.username,
-        age: user.age,
-        role: user.role
+        id: user?.id,
+        username: user?.username,
+        email: user?.email,
+        role: user?.role,
+        isEmailVer: user?.isEmailVer,
+        sessionId
     }, accessSecret, { expiresIn: "30m" });
     const refreshToken = jsonwebtoken_1.default.sign({
-        id: user.id,
-        username: user.username,
-        age: user.age,
-        role: user.role
+        id: user?.id,
+        username: user?.username,
+        email: user?.email,
+        role: user?.role,
+        isEmailVer: user?.isEmailVer,
+        sessionId
     }, refreshSecret, { expiresIn: "30d" });
     return { accessToken, refreshToken };
 }
@@ -38,8 +44,8 @@ function verifyToken(user) {
         throw new Error("JWT are not defined in environmental variables");
     }
     const token = jsonwebtoken_1.default.sign({
-        id: user.id,
-        username: user.username
+        id: user?.id,
+        username: user?.username
     }, emailSecret, { expiresIn: "1d" });
     return token;
 }
@@ -71,6 +77,6 @@ function saveRefreshToken(res, token) {
         httpOnly: true,
         secure: false,
         maxAge: 30 * 24 * 60 * 60 * 1000,
-        sameSite: 'none'
+        sameSite: "lax",
     });
 }

@@ -24,6 +24,7 @@ const asyncHandler = (fn) => {
 exports.asyncHandler = asyncHandler;
 //Global Error handler
 const globalError = (err, req, res, next) => {
+    console.log(err.message);
     const statusCode = err.statusCode || 500;
     res.status(statusCode).json({
         status: err.status || 'fail',

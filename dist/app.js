@@ -7,10 +7,12 @@ const express_1 = __importDefault(require("express"));
 const router_1 = __importDefault(require("./routes/router"));
 const cookie_parser_1 = __importDefault(require("cookie-parser"));
 const appError_1 = require("./utils/appError");
+const cors_1 = __importDefault(require("cors"));
 const app = (0, express_1.default)();
 app.use(express_1.default.json());
 app.use((0, cookie_parser_1.default)());
 app.set('query parser', 'extended');
+app.use((0, cors_1.default)());
 app.use('/typescript', router_1.default);
 //Not found error handler
 app.use((req, res, next) => {

@@ -13,6 +13,9 @@ class QueryBuilder {
         for (const key in filters) {
             if (allowedFields.includes(key)) {
                 safeFilters[key] = filters[key];
+                if (key === 'InStock') {
+                    safeFilters[key] = filters[key] === "true";
+                }
             }
         }
         let str = JSON.stringify(safeFilters);
