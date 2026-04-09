@@ -117,6 +117,7 @@ export const getUserCart = asyncHandler(async (req: Request, res: Response, next
 export const updateCartItem = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
   const itemId = req.params.itemId as string;
   const quantity = req.body.quantity as number;
+  const userId = req.user?.id as string;
 
   if (!isUUID(itemId)) return next(new appError("Invalid item id id format", 400));
 
@@ -125,20 +126,44 @@ export const updateCartItem = asyncHandler(async (req: Request, res: Response, n
   }
 
   //Check if the item exists in cart item
-  const item = await prisma.cartItems.findUnique({
+  const item = await prisma.cart.findUnique({
     where: {
-      id: itemId
+      userId
+    },
+    select: {
+      items: {
+        select: {
+          id: true,
+          quantity: true,
+          productId: true,
+          product: {
+            select: {
+              name: true,
+              price: true,
+              productImageUrl: true
+            }
+          }
+        }
+      }
     }
   });
 
-  if (!item) {
+  let found: any;
+  item?.items.forEach((one) => {
+    if (one.id === itemId) {
+      found = one
+    }
+    //console.log(one);
+  });
+
+  if (!found) {
     return next(new appError("This product is not present in the cart", 404));
   }
 
   //Update the quantity of the item
   const update = await prisma.cartItems.update({
     where: {
-      id: itemId
+      id: found?.id
     },
     data: {
       quantity
@@ -154,24 +179,74 @@ export const updateCartItem = asyncHandler(async (req: Request, res: Response, n
 export const removeFromCart = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
   const itemId = req.params.itemId as string;
 
+  const userId = req.user?.id as string;
+
   if (!isUUID(itemId)) return next(new appError("Invalid item id id format", 400));
 
   //Check if the item exists in cart item
-  const item = await prisma.cartItems.findUnique({
+  const item = await prisma.cart.findUnique({
     where: {
-      id: itemId
+      userId
+    },
+    select: {
+      items: {
+        select: {
+          id: true,
+          productId: true,
+          quantity: true,
+          product: {
+            select: {
+              productImageUrl: true,
+              name: true,
+              price: true
+            }
+          }
+        }
+      }
     }
   });
 
-  if (!item) {
+  let found: any;
+  item?.items.forEach((one) => {
+    if (one.id === itemId) {
+      found = one
+    }
+  });
+
+  if (!found) {
     return next(new appError("This product is not present in the cart", 404));
   }
 
-  const deleteItem = await prisma.cartItems.delete({
+  let deleteItem;
+  let passOne;
+
+  if (found?.quantity > 1) {
+    const remover = found?.quantity - 1;
+
+
+    passOne = await prisma.cartItems.update({
+      where: {
+        id: found?.id
+      },
+      data: {
+        quantity: remover
+      }
+    })
+
+    return res.status(200).json({
+      message: "One item removed successfully",
+      data: passOne
+    })
+
+  } else if (found?.quantity === 1) {
+
+  deleteItem = await prisma.cartItems.delete({
     where: {
-      id: itemId
+      id: found?.id
     }
   });
+
+  }
 
   res.status(200).json({
     message: "Item deleted successfully",

@@ -102,24 +102,48 @@ exports.getUserCart = (0, appError_1.asyncHandler)(async (req, res, next) => {
 exports.updateCartItem = (0, appError_1.asyncHandler)(async (req, res, next) => {
     const itemId = req.params.itemId;
     const quantity = req.body.quantity;
+    const userId = req.user?.id;
     if (!(0, uuid_1.validate)(itemId))
         return next(new appError_2.appError("Invalid item id id format", 400));
     if (quantity <= 0) {
         return next(new appError_2.appError("Item quantity cannot be less than or equal to zero", 400));
     }
     //Check if the item exists in cart item
-    const item = await prismaClient_1.default.cartItems.findUnique({
+    const item = await prismaClient_1.default.cart.findUnique({
         where: {
-            id: itemId
+            userId
+        },
+        select: {
+            items: {
+                select: {
+                    id: true,
+                    quantity: true,
+                    productId: true,
+                    product: {
+                        select: {
+                            name: true,
+                            price: true,
+                            productImageUrl: true
+                        }
+                    }
+                }
+            }
         }
     });
-    if (!item) {
+    let found;
+    item?.items.forEach((one) => {
+        if (one.id === itemId) {
+            found = one;
+        }
+        //console.log(one);
+    });
+    if (!found) {
         return next(new appError_2.appError("This product is not present in the cart", 404));
     }
     //Update the quantity of the item
     const update = await prismaClient_1.default.cartItems.update({
         where: {
-            id: itemId
+            id: found?.id
         },
         data: {
             quantity
@@ -132,22 +156,64 @@ exports.updateCartItem = (0, appError_1.asyncHandler)(async (req, res, next) => 
 });
 exports.removeFromCart = (0, appError_1.asyncHandler)(async (req, res, next) => {
     const itemId = req.params.itemId;
+    const userId = req.user?.id;
     if (!(0, uuid_1.validate)(itemId))
         return next(new appError_2.appError("Invalid item id id format", 400));
     //Check if the item exists in cart item
-    const item = await prismaClient_1.default.cartItems.findUnique({
+    const item = await prismaClient_1.default.cart.findUnique({
         where: {
-            id: itemId
+            userId
+        },
+        select: {
+            items: {
+                select: {
+                    id: true,
+                    productId: true,
+                    quantity: true,
+                    product: {
+                        select: {
+                            productImageUrl: true,
+                            name: true,
+                            price: true
+                        }
+                    }
+                }
+            }
         }
     });
-    if (!item) {
+    let found;
+    item?.items.forEach((one) => {
+        if (one.id === itemId) {
+            found = one;
+        }
+    });
+    if (!found) {
         return next(new appError_2.appError("This product is not present in the cart", 404));
     }
-    const deleteItem = await prismaClient_1.default.cartItems.delete({
-        where: {
-            id: itemId
-        }
-    });
+    let deleteItem;
+    let passOne;
+    if (found?.quantity > 1) {
+        const remover = found?.quantity - 1;
+        passOne = await prismaClient_1.default.cartItems.update({
+            where: {
+                id: found?.id
+            },
+            data: {
+                quantity: remover
+            }
+        });
+        return res.status(200).json({
+            message: "One item removed successfully",
+            data: passOne
+        });
+    }
+    else if (found?.quantity === 1) {
+        deleteItem = await prismaClient_1.default.cartItems.delete({
+            where: {
+                id: found?.id
+            }
+        });
+    }
     res.status(200).json({
         message: "Item deleted successfully",
         data: deleteItem
