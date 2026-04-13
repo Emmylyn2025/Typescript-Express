@@ -105,8 +105,19 @@ exports.updateCartItem = (0, appError_1.asyncHandler)(async (req, res, next) => 
     const userId = req.user?.id;
     if (!(0, uuid_1.validate)(itemId))
         return next(new appError_2.appError("Invalid item id id format", 400));
-    if (quantity <= 0) {
-        return next(new appError_2.appError("Item quantity cannot be less than or equal to zero", 400));
+    if (quantity < 0) {
+        return next(new appError_2.appError("Item quantity cannot be less than zero", 400));
+    }
+    else if (quantity === 0) {
+        await prismaClient_1.default.cartItems.delete({
+            where: {
+                id: itemId
+            }
+        });
+        return res.status(200).json({
+            status: "success",
+            message: "Product removed successfully"
+        });
     }
     //Check if the item exists in cart item
     const item = await prismaClient_1.default.cart.findUnique({
