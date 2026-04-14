@@ -506,7 +506,7 @@ export const getAuthCallBackHandler = asyncHandler(async (req: Request, res: Res
   //Save access token in httpOnly cookie too
   res.cookie("accessToken", accessToken, {
     httpOnly: true,
-    secure: false, // true in production
+    secure: true, // true in production
     sameSite: "lax",
     maxAge: 30 * 60 * 1000
   });
