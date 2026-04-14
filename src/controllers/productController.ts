@@ -7,7 +7,8 @@ import { handlePrismaError } from "../utils/handleErrorPrisma";
 import { validate as isUUID } from "uuid";
 import uploadToCloudinary from "../cloudinary/cloudianryHelpers";
 import cloudinary from "../cloudinary/cloudinary";
-import redisClient from "../redis/redis";;
+import redisClient from "../redis/redis";
+import fs from "fs"
 
 
 export const addProduct = asyncHandler(async (req: Request<{}, {}, productTypes>, res: Response, next: NextFunction) => {
@@ -41,6 +42,9 @@ export const addProduct = asyncHandler(async (req: Request<{}, {}, productTypes>
 
     const keys = await redisClient.keys("products:*");
     if (keys.length) await redisClient.del(keys);
+
+    //Remove image from local storage
+    fs.unlinkSync(req.file?.path);
 
     res.status(201).json({
       message: "product created successfully",
