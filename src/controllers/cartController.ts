@@ -162,7 +162,7 @@ export const updateCartItem = asyncHandler(async (req: Request, res: Response, n
   });
 
   let found: any;
-  item?.items.forEach((one) => {
+  item?.items.forEach((one: any) => {
     if (one.id === itemId) {
       found = one
     }
@@ -220,7 +220,7 @@ export const removeFromCart = asyncHandler(async (req: Request, res: Response, n
   });
 
   let found: any;
-  item?.items.forEach((one) => {
+  item?.items.forEach((one: any) => {
     if (one.id === itemId) {
       found = one
     }

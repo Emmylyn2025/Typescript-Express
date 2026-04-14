@@ -40,11 +40,11 @@ export const createOrder = asyncHandler(async (req: Request, res: Response, next
   let total = 0;
 
   //Calculate the total price
-  cart.items.forEach((item) => {
+  cart.items.forEach((item: any) => {
     total = (item.quantity * item.product.price) + total;
   });
 
-  const order = await prisma.$transaction(async (tx) => {
+  const order = await prisma.$transaction(async (tx: any) => {
     //Create new order
     const newOrder = await tx.orders.create({
       data: {
@@ -56,7 +56,7 @@ export const createOrder = asyncHandler(async (req: Request, res: Response, next
 
     //Create order items
     await tx.orderItems.createMany({
-      data: cart.items.map((item) => ({
+      data: cart.items.map((item: any) => ({
         orderId: newOrder.id,
         productId: item.productId,
         quantity: item.quantity,
