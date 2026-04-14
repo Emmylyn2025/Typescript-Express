@@ -9,10 +9,6 @@ app.use(express.json());
 app.use(cookieParser());
 app.set('query parser', 'extended');
 app.use(cors());
-
-app.get('/', (req, res) => {
-  res.send("Hello There");
-})
 app.use('/typescript', router);
 
 //Not found error handler
