@@ -48,7 +48,7 @@ export const RegisterUsers = asyncHandler(async (req: Request<{}, {}, User>, res
   //generate email verification token
   const token = verifyToken(newUser);
 
-  verifyUrl = `http://localhost:${process.env.PORT}/typescript/verify-email?token=${token}`;
+  verifyUrl = `https://typescript-express-production.up.railway.app/typescript/verify-email?token=${token}`;
 
   await sendEmail(
     newUser.email,
@@ -516,5 +516,5 @@ export const getAuthCallBackHandler = asyncHandler(async (req: Request, res: Res
   //   token: accessToken
   // });
 
-  res.redirect("http://localhost:3000/typescript/products");
+  res.redirect("https://typescript-express-production.up.railway.app/typescript/products");
 });
