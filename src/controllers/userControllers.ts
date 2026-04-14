@@ -48,7 +48,7 @@ export const RegisterUsers = asyncHandler(async (req: Request<{}, {}, User>, res
   //generate email verification token
   const token = verifyToken(newUser);
 
-  verifyUrl = `https://typescript-express-production.up.railway.app/typescript/verify-email?token=${token}`;
+  verifyUrl = `https://api.emmanuelawobodu.com/typescript/verify-email?token=${token}`;
 
   await sendEmail(
     newUser.email,
@@ -301,7 +301,7 @@ export const forgotpassword = asyncHandler(async (req: Request<{}, {}, forget>, 
   //Save hased bytes in redis
   await redisClient.set(`userReset:${randomToken}`, user.id, { EX: 60 * 10 });
 
-  const url = `http://localhost:3000/typescript/reset-password?token=${randomToken}`;
+  const url = `https://api.emmanuelawobodu.com/typescript/reset-password?token=${randomToken}`;
 
   //Send the url link to the user email
   await sendResetPass(
@@ -516,5 +516,5 @@ export const getAuthCallBackHandler = asyncHandler(async (req: Request, res: Res
   //   token: accessToken
   // });
 
-  res.redirect("https://typescript-express-production.up.railway.app/typescript/products");
+  res.redirect("https://api.emmanuelawobodu.com/typescript/products");
 });
