@@ -7,6 +7,6 @@ const dotenv_1 = __importDefault(require("dotenv"));
 dotenv_1.default.config();
 const app_1 = __importDefault(require("./app"));
 const PORT = Number(process.env.PORT) || 3000;
-app_1.default.listen(PORT, () => {
+app_1.default.listen(PORT, '0.0.0.0', () => {
     console.log(`Server running on port ${PORT}`);
 });
