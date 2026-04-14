@@ -5,9 +5,10 @@
   "main": "server.ts",
   "scripts": {
     "dev": "ts-node-dev src/server.ts",
-    "start": "prisma migrate deploy && node dist/server.js",
+    "start": "node dist/server.js",
     "build": "tsc",
-    "test": "jest"
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate deploy"
   },
   "keywords": [],
   "author": "",
@@ -16,6 +17,7 @@
   "dependencies": {
     "@prisma/adapter-pg": "^7.4.2",
     "@prisma/client": "^7.4.2",
+    "@types/pg": "^8.20.0",
     "bcrypt": "^6.0.0",
     "cloudinary": "^2.9.0",
     "cookie-parser": "^1.4.7",
@@ -28,6 +30,7 @@
     "juice": "^11.1.1",
     "multer": "^2.1.1",
     "nodemailer": "^8.0.2",
+    "pg": "^8.20.0",
     "prisma": "^7.4.2",
     "redis": "^5.11.0",
     "resend": "^6.9.3",
