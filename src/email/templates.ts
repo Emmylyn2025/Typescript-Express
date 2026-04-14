@@ -26,7 +26,9 @@ const transporter = nodemailer.createTransport({
   auth: {
     user,
     pass
-  }
+  },
+  connectionTimeout: 10000, 
+  greetingTimeout: 10000,
 });
 
 export async function sendEmail(userEmail: string, verifyUrl: string) {
