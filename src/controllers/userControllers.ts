@@ -15,6 +15,7 @@ import { googleClient } from "../utils/google";
 import { removePassword } from "../utils/removePassword";
 import { info } from "../utils/removePassword";
 import { sendResetPass } from "../email/templates";
+import jwt from "jsonwebtoken"
 
 
 export let verifyUrl: string
@@ -148,6 +149,14 @@ export const LoginUsers = asyncHandler(async (req: Request<{}, {}, Login>, res: 
   //Save refresh token in httpOnly cookie
   saveRefreshToken(res, refreshToken);
 
+  //Save access token inside of httpOnly cookie
+  res.cookie('accessToken', accessToken, {
+    httpOnly: true,
+    secure: true, // true in production
+    sameSite: "lax",
+    maxAge: 30 * 60 * 1000
+  });
+
   res.status(200).json({
     message: "Login Successful",
     token: accessToken,
@@ -177,10 +186,29 @@ export const refresh = asyncHandler(async (req: Request, res: Response, next: Ne
   //Save refresh token inside cookie
   saveRefreshToken(res, refreshToken);
 
+  res.cookie('accessToken', accessToken, {
+    httpOnly: true,
+    secure: true, // true in production
+    sameSite: "lax",
+    maxAge: 30 * 60 * 1000
+  });
+
   res.status(200).json({
     token: accessToken
   });
 });
+
+export const StayLogged = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+  const accessToken = req.cookies.accessToken as string;
+
+  if (!accessToken) return next(new appError("No accessToken in cookie", 401))
+  
+  const user = jwt.verify(accessToken, process.env.accessToken!);
+
+  res.status(200).json({
+    data: user
+  });
+})
 
 export const logout = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
   const refreshCookie = req.cookies.refreshtoken;

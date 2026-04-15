@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { RegisterUsers, LoginUsers, refresh, logout, allUsers, deleteUser, updateUser, forgotpassword, resetPassword, verifyEmail, googleAuthStart, getAuthCallBackHandler } from "../controllers/userControllers";
+import { RegisterUsers, LoginUsers, refresh, StayLogged, logout, allUsers, deleteUser, updateUser, forgotpassword, resetPassword, verifyEmail, googleAuthStart, getAuthCallBackHandler } from "../controllers/userControllers";
 import { addProduct, getProducts, getProductById, deleteProduct, updateProduct } from "../controllers/productController";
 import { auth, adminAuth } from "../middleware/authMiddleware";
 import validation from "../middleware/zodValidationMiddleware";
@@ -19,6 +19,7 @@ router.delete('/users/:id', auth, adminAuth, rateLimiter, deleteUser);
 router.patch('/users/:id', auth, adminAuth, rateLimiter, updateUser);
 router.post('/login', rateLimiter, validation(loginSchema), LoginUsers);
 router.get('/refresh', rateLimiter, refresh);
+router.get('/me', auth, StayLogged)
 router.get('/logout', rateLimiter, logout);
 router.post('/forgot-password', rateLimiter, validation(forgotSchema), forgotpassword);
 router.patch('/reset-password', rateLimiter, resetPassword);
