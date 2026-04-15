@@ -85,7 +85,7 @@ export function verifyRefreshToken(token: string): payLoadTokenSession {
 export function saveRefreshToken(res: Response, token: string) {
   res.cookie('refreshtoken', token, {
     httpOnly: true,
-    secure: true,
+    secure: false,
     maxAge: 30 * 24 * 60 * 60 * 1000,
     sameSite: "lax",
   });

@@ -152,7 +152,7 @@ export const LoginUsers = asyncHandler(async (req: Request<{}, {}, Login>, res: 
   //Save access token inside of httpOnly cookie
   res.cookie('accessToken', accessToken, {
     httpOnly: true,
-    secure: true, // true in production
+    secure: false, // true in production
     sameSite: "lax",
     maxAge: 30 * 60 * 1000
   });
