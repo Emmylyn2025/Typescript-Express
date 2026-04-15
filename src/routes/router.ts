@@ -18,9 +18,9 @@ router.get('/users', auth, adminAuth, rateLimiter, allUsers);
 router.delete('/users/:id', auth, adminAuth, rateLimiter, deleteUser);
 router.patch('/users/:id', auth, adminAuth, rateLimiter, updateUser);
 router.post('/login', rateLimiter, validation(loginSchema), LoginUsers);
-router.get('/refresh', rateLimiter, refresh);
+router.post('/refresh', rateLimiter, refresh);
 router.get('/me', StayLogged)
-router.get('/logout', rateLimiter, logout);
+router.post('/logout', rateLimiter, logout);
 router.post('/forgot-password', rateLimiter, validation(forgotSchema), forgotpassword);
 router.patch('/reset-password', rateLimiter, resetPassword);
 router.get('/google', rateLimiter, googleAuthStart);
