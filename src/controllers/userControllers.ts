@@ -200,7 +200,7 @@ export const refresh = asyncHandler(async (req: Request, res: Response, next: Ne
 
 export const StayLogged = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
   const accessToken = req.cookies.accessToken as string;
-
+  console.log(accessToken);
   if (!accessToken) return next(new appError("No accessToken in cookie", 401))
   
   const user = jwt.verify(accessToken, process.env.accessToken!);
