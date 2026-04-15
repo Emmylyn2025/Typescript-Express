@@ -152,8 +152,8 @@ export const LoginUsers = asyncHandler(async (req: Request<{}, {}, Login>, res: 
   //Save access token inside of httpOnly cookie
   res.cookie('accessToken', accessToken, {
     httpOnly: true,
-    secure: false, // true in production
-    sameSite: "lax",
+    secure: true, // true in production
+    sameSite: "none",
     maxAge: 30 * 60 * 1000
   });
 
@@ -535,7 +535,7 @@ export const getAuthCallBackHandler = asyncHandler(async (req: Request, res: Res
   res.cookie("accessToken", accessToken, {
     httpOnly: true,
     secure: true, // true in production
-    sameSite: "lax",
+    sameSite: "none",
     maxAge: 30 * 60 * 1000
   });
 
