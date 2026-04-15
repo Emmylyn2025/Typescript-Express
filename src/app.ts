@@ -8,7 +8,10 @@ const app: Application = express();
 app.use(express.json());
 app.use(cookieParser());
 app.set('query parser', 'extended');
-app.use(cors());
+app.use(cors({
+  origin: "http://localhost:5173",
+  credentials: true
+}));
 app.use('/typescript', router);
 
 //Not found error handler
