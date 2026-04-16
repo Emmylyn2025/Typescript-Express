@@ -246,6 +246,7 @@ export const logout = asyncHandler(async (req: Request, res: Response, next: Nex
 
   //Remove from cookie
   res.clearCookie('refreshtoken');
+  res.clearCookie('accessToken');
 
   res.status(200).json({
     status: "Successful",
