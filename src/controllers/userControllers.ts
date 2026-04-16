@@ -231,13 +231,13 @@ export const logout = asyncHandler(async (req: Request, res: Response, next: Nex
 
     const user2 = verifyAccessToken(accessToken);
 
-    if (user !== user2) {
-      return next(new appError("Invalid access token", 400));
-    }
+    // if (user !== user2) {
+    //   return next(new appError("Invalid access token", 400));
+    // }
     
   //Check if it is valid in redis
   const redis = await redisClient.get(`user:${user.id}`);
-  const access = await redisClient.get(`access${user.id}`);
+  const access = await redisClient.get(`access${user2.id}`);
 
   //save the access token as blacklist
   await redisClient.set(`blacklist${access}`, "true", { EX: 3600 });
