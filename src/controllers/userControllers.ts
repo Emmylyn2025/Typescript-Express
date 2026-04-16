@@ -232,6 +232,8 @@ export const logout = asyncHandler(async (req: Request, res: Response, next: Nex
     const user2 = verifyAccessToken(accessToken);
 
     if (user !== user2) {
+      res.clearCookie('refreshtoken');
+      res.clearCookie('accessToken');
       return next(new appError("Invalid access token", 400));
     }
     
