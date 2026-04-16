@@ -226,18 +226,15 @@ export const logout = asyncHandler(async (req: Request, res: Response, next: Nex
   //Get access token fom cookie
   const accessToken = req.cookies?.accessToken;
   if (accessToken) {
+
+  try {
+
     const user2 = verifyAccessToken(accessToken);
 
     if (user !== user2) {
-
-      // res.clearCookie('accessToken');
-      // res.clearCookie('refreshtoken');
-
       return next(new appError("Invalid access token", 400));
     }
-  }
-
-  //console.log(user);
+    
   //Check if it is valid in redis
   const redis = await redisClient.get(`user:${user.id}`);
   const access = await redisClient.get(`access${user.id}`);
@@ -258,6 +255,18 @@ export const logout = asyncHandler(async (req: Request, res: Response, next: Nex
     status: "Successful",
     message: "Logout successfully"
   });
+    
+    
+  } catch (error: any) {
+      if (error.name === 'TokenExpiredError') {
+      return next(new appError("jwt expired", 401));
+     }
+
+    return next(new appError("internal server error", 500))
+    }
+  }
+  
+  //}
 });
 
 export const allUsers = asyncHandler(async (req: Request<{}, {}, {}, userQuery>, res: Response, next: NextFunction) => {
