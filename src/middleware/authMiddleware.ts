@@ -29,12 +29,18 @@ export const auth = async (req: Request, res: Response, next: NextFunction) => {
   const blackListToken = await redisClient.get(`blacklist${token}`);
   if (blackListToken) return next(new appError("You have logged out", 401));
 
+  try {
   //Decode access token
-  const decoded = verifyAccessToken(token as string);
-  //console.log(decoded);
-  req.user = decoded;
+    const decoded = verifyAccessToken(token as string);
+    req.user = decoded;
+  } catch (error: any) {
 
-  //console.log(decoded);
+    if (error.name === 'TokenExpiredError') {
+      return next(new appError("jwt expired", 401));
+    }
+
+    return next(new appError("internal server error", 500))
+  }
 
   next();
 };

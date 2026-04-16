@@ -24,7 +24,7 @@ export function generateTokens(user: payLoadToken): tokenReturn {
     role: user?.role,
     isEmailVer: user?.isEmailVer,
     sessionId
-  }, accessSecret, { expiresIn: "15m" });
+  }, accessSecret, { expiresIn: "5m" });
 
   const refreshToken = jwt.sign({
     id: user?.id,
