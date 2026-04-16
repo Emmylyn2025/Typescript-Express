@@ -141,10 +141,10 @@ export const LoginUsers = asyncHandler(async (req: Request<{}, {}, Login>, res: 
   const { accessToken, refreshToken } = generateTokens(removedPassword as info);
 
   //Save refresh token in redis
-  await redisClient.set(`user:${user.id}`, refreshToken, { EX: 2592000 });
+  await redisClient.set(`user:${user.id}`, refreshToken, { EX: 604800 });
 
   //store accesstoken in redis for cookie expiration
-  await redisClient.set(`access${user.id}`, accessToken, { EX: 1800 });
+  await redisClient.set(`access${user.id}`, accessToken, { EX: 600 });
 
   //Save refresh token in httpOnly cookie
   saveRefreshToken(res, refreshToken);
@@ -167,6 +167,9 @@ export const LoginUsers = asyncHandler(async (req: Request<{}, {}, Login>, res: 
 export const refresh = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
   const refreshCookie = req.cookies?.refreshtoken as string | undefined;
   if (!refreshCookie) return next(new appError("No refresh token available in cookie", 401));
+
+  try {
+
   const user = verifyRefreshToken(refreshCookie);
 
   //Check if it is valid in redis
@@ -181,7 +184,7 @@ export const refresh = asyncHandler(async (req: Request, res: Response, next: Ne
   const { accessToken, refreshToken } = generateTokens(user);
 
   //Save refresh token in redis
-  await redisClient.set(`user:${user.id}`, refreshToken, { EX: 2592000 });
+  await redisClient.set(`user:${user.id}`, refreshToken, { EX: 604800 });
 
   //Save refresh token inside cookie
   saveRefreshToken(res, refreshToken);
@@ -190,12 +193,20 @@ export const refresh = asyncHandler(async (req: Request, res: Response, next: Ne
     httpOnly: true,
     secure: true, // true in production
     sameSite: "lax",
-    maxAge: 30 * 60 * 1000
+    maxAge: 10 * 60 * 1000
   });
 
   res.status(200).json({
     token: accessToken
   });
+    
+  } catch (error: any) {
+    if (error.name === 'TokenExpiredError') {
+      return next(new appError("jwt expired", 401));
+     }
+
+    return next(new appError("internal server error", 500))
+  }
 });
 
 export const StayLogged = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
@@ -221,15 +232,16 @@ export const StayLogged = asyncHandler(async (req: Request, res: Response, next:
 export const logout = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
   const refreshCookie = req.cookies.refreshtoken;
   if (!refreshCookie) return next(new appError("No refresh token available in cookie", 401));
-  const user = verifyRefreshToken(refreshCookie);
 
   //Get access token fom cookie
   const accessToken = req.cookies?.accessToken;
   if (accessToken) {
 
-  try {
+    try {
+    
+      const user = verifyRefreshToken(refreshCookie);
 
-    const user2 = verifyAccessToken(accessToken);
+    //const user2 = verifyAccessToken(accessToken);
 
     // if (user !== user2) {
     //   return next(new appError("Invalid access token", 400));
@@ -237,7 +249,7 @@ export const logout = asyncHandler(async (req: Request, res: Response, next: Nex
     
   //Check if it is valid in redis
   const redis = await redisClient.get(`user:${user.id}`);
-  const access = await redisClient.get(`access${user2.id}`);
+  const access = await redisClient.get(`access${user.id}`);
 
   //save the access token as blacklist
   await redisClient.set(`blacklist${access}`, "true", { EX: 3600 });
@@ -251,7 +263,7 @@ export const logout = asyncHandler(async (req: Request, res: Response, next: Nex
   res.clearCookie('refreshtoken', {
     httpOnly: true,
     secure: true,
-    maxAge: 30 * 24 * 60 * 60 * 1000,
+    maxAge: 7 * 24 * 60 * 60 * 1000,
     sameSite: "none",
   });
     
@@ -260,7 +272,7 @@ export const logout = asyncHandler(async (req: Request, res: Response, next: Nex
     httpOnly: true,
     secure: true, // true in production
     sameSite: "none",
-    maxAge: 30 * 60 * 1000
+    maxAge: 10 * 60 * 1000
   });
 
   res.status(200).json({
@@ -564,7 +576,7 @@ export const getAuthCallBackHandler = asyncHandler(async (req: Request, res: Res
     httpOnly: true,
     secure: true, // true in production
     sameSite: "none",
-    maxAge: 30 * 60 * 1000
+    maxAge: 10 * 60 * 1000
   });
 
   // res.status(200).json({

@@ -24,7 +24,7 @@ export function generateTokens(user: payLoadToken): tokenReturn {
     role: user?.role,
     isEmailVer: user?.isEmailVer,
     sessionId
-  }, accessSecret, { expiresIn: "5m" });
+  }, accessSecret, { expiresIn: "10m" });
 
   const refreshToken = jwt.sign({
     id: user?.id,
@@ -33,7 +33,7 @@ export function generateTokens(user: payLoadToken): tokenReturn {
     role: user?.role,
     isEmailVer: user?.isEmailVer,
     sessionId
-  }, refreshSecret, { expiresIn: "30d" });
+  }, refreshSecret, { expiresIn: "7d" });
 
   return { accessToken, refreshToken };
 }
@@ -86,7 +86,7 @@ export function saveRefreshToken(res: Response, token: string) {
   res.cookie('refreshtoken', token, {
     httpOnly: true,
     secure: true,
-    maxAge: 30 * 24 * 60 * 60 * 1000,
+    maxAge: 7 * 24 * 60 * 60 * 1000,
     sameSite: "none",
   });
 }
