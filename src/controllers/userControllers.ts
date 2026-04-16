@@ -228,14 +228,12 @@ export const logout = asyncHandler(async (req: Request, res: Response, next: Nex
   if (accessToken) {
     const user2 = verifyAccessToken(accessToken);
 
-    if (user.sessionId === user2.sessionId) {
+    if (user !== user2) {
 
-      res.clearCookie('accessToken');
-      res.clearCookie('refreshtoken');
+      // res.clearCookie('accessToken');
+      // res.clearCookie('refreshtoken');
 
-      return res.status(200).json({
-        message: "Google logout successful"
-      });
+      return next(new appError("Invalid access token", 400));
     }
   }
 
