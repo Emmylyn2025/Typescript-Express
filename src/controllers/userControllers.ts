@@ -203,11 +203,19 @@ export const StayLogged = asyncHandler(async (req: Request, res: Response, next:
   console.log(accessToken);
   if (!accessToken) return next(new appError("No accessToken in cookie", 401))
   
-  const user = jwt.verify(accessToken, process.env.accessToken!);
+  try {
+    const user = jwt.verify(accessToken, process.env.accessToken!);
 
   res.status(200).json({
     data: user
   });
+  } catch (error: any) {
+    if (error.name === 'TokenExpiredError') {
+      return next(new appError("jwt expired", 401));
+    }
+
+    return next(new appError("internal server error", 500))
+  }
 })
 
 export const logout = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
