@@ -248,8 +248,20 @@ export const logout = asyncHandler(async (req: Request, res: Response, next: Nex
   await redisClient.del(`user:${user.id}`);
 
   //Remove from cookie
-  res.clearCookie('refreshtoken');
-  res.clearCookie('accessToken');
+  res.clearCookie('refreshtoken', {
+    httpOnly: true,
+    secure: true,
+    maxAge: 30 * 24 * 60 * 60 * 1000,
+    sameSite: "none",
+  });
+    
+
+  res.clearCookie('accessToken', {
+    httpOnly: true,
+    secure: true, // true in production
+    sameSite: "none",
+    maxAge: 30 * 60 * 1000
+  });
 
   res.status(200).json({
     status: "Successful",
