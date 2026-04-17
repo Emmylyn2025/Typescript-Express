@@ -192,12 +192,12 @@ export const refresh = asyncHandler(async (req: Request, res: Response, next: Ne
   res.cookie('accessToken', accessToken, {
     httpOnly: true,
     secure: true, // true in production
-    sameSite: "lax",
+    sameSite: "none",
     maxAge: 10 * 60 * 1000
   });
 
   res.status(200).json({
-    token: accessToken
+    status: true
   });
     
   } catch (error: any) {
