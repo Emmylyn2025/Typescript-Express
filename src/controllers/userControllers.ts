@@ -586,3 +586,5 @@ export const getAuthCallBackHandler = asyncHandler(async (req: Request, res: Res
 
   res.redirect(`${process.env.my_api!}/typescript/products`);
 });
+
+console.log(process.env.my_api);
