@@ -61,7 +61,7 @@ export const getProducts = asyncHandler(async (req: Request, res: Response, next
 
   const cacheSet = `products:${JSON.stringify(req.query)}`;
 
-  console.log(cacheSet);
+  //console.log(cacheSet);
 
   const cacheProd = await redisClient.get(cacheSet);
 
